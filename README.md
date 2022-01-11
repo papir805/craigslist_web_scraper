@@ -13,7 +13,7 @@ If you're interested in seeing just the script and Python code that I wrote, ope
 2. *Transform* data to my own specifications using `Pandas`, `NumPy`, and `Sklearn`
 3. *Load* data into PostgreSQL database using `Psycopg2`
 
-### To-Do List:
+# To-Do List:
 - [ ] Capture prices containing decimals using regular expressions
 - [X] Improve countdown timer during extraction process **(completed 1/9/22)**
 - [ ] Modularize extraction process by breaking code into smaller chunks
