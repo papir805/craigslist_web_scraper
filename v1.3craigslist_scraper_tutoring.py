@@ -30,9 +30,6 @@ import psycopg2
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-
-
-
 # %%
 # I picked the 10 largest metropolitan areas by population to scrape data from, as well as Sacramento, since it's nearby to me and is another major city
 regions_to_scrape = ['sf_bay_area',
@@ -46,8 +43,6 @@ regions_to_scrape = ['sf_bay_area',
                     'philadelphia',
                     'dallas',
                     'san_antonio']
-
-num_regions = len(regions_to_scrape)
 
 # %% [markdown]
 # # *Extract* Craigslist Data
@@ -101,6 +96,7 @@ for count, region in enumerate(regions_to_scrape):
             else:
                 is_next_button = False
                 print(F"Last response for {region} received.  Process completed.")
+                print()
         except:
             pass
     
@@ -108,8 +104,7 @@ for count, region in enumerate(regions_to_scrape):
     response_dict[region] = region_response_list
 
 # %%
-# Walk through each region to get a list of all individual postings for math tutoring 
-# in the results page we searched up earlier.
+# Walk through each region to get a list of all individual postings for math tutoring in the results pages we searched up earlier.
 posts_dict = {}
 for region, responses in response_dict.items():
     #current_region = region
@@ -121,44 +116,49 @@ for region, responses in response_dict.items():
     posts_dict[region] = region_posts
 
 # %%
+# Calculate how many posts in total are to be scraped
+num_posts = 0
+num_regions = len(posts_dict)
+for region, posts in posts_dict.items():
+    num_posts += len(posts_dict[region])
+
+# %%
 soup_objects_dict = {}
 
+num_posts_remaining = num_posts
 current_time = dt.datetime.now()
-num_seconds = num_regions * 120 * 10
-max_finish_time = current_time + dt.timedelta(seconds=num_seconds)
+max_seconds_until_finish = num_posts * 10
+max_finish_time = current_time + dt.timedelta(seconds=max_seconds_until_finish)
 
 print(F"Current time is {current_time.strftime('%H:%M:%S')}")
 print(F"Process will finish by {max_finish_time.strftime('%H:%M:%S')}")
 print()
 
 for count, region in enumerate(posts_dict, start=1):
-    # Walk through each region and create a list of soup_objects to scrape from by 
-    # storing them into memory.  This way we only have to send these get requests 
-    # once and Craigslist doesn't ban us for sending the same https requests over 
-    # and over
+    # Walk through each region and create a list of soup_objects to scrape from by storing them into memory.  This way we only have to send these get requests once and Craigslist doesn't ban us for sending the same https requests over and over
     soup_objects_list = []
-    #link_list = []
     for i, post in enumerate(posts_dict[region]):
-        # Impose a timer so that we send each get request between 5 and 10 seconds.
-        # This is again to help prevent from getting banned for too many HTTP 
-        # requests.
+        # Impose a timer so that we send each get request between 5 and 10 seconds.  This is again to help prevent from getting banned for too many HTTP requests.
         random_int = random.randint(5,10)
         time.sleep(random_int)
         current_link = post.a.get('href')
-        #link_list.append(current_link)
         response_object = session.get(current_link)
         soup_object = BeautifulSoup(response_object.text, 'html.parser')
         soup_objects_list.append(soup_object) 
-        # Impose condition that every 10th post will trigger something printed
-        # to the screen.  This part of the code is a long process and I wanted
-        # something to help keep track of how much progress has been made
+        # Impose condition that every 10th post will trigger something printed to the screen.  This part of the code is a long process and I wanted something to help keep track of how much progress has been made
         if (i !=0) and ((i-1) % 10 == 9):
             print(F"Post number {i} in {region} is being extracted.")
     
     soup_objects_dict[region] = soup_objects_list
     if count != len(posts_dict):
+        num_posts_remaining -= len(posts_dict[region])
+        current_time = dt.datetime.now()
+        new_seconds_until_finish = num_posts_remaining * 10
+        new_max_finish_time = current_time + dt.timedelta(seconds=new_seconds_until_finish)
+        
         print()
         print(F"Soup objects for {region} acquired.  Waiting for next region...")
+        print(F"Process will now finish by {new_max_finish_time.strftime('%H:%M:%S')}")
         print()
     else:
         print()
@@ -172,7 +172,7 @@ df_list = []
 error_list_text = []
 error_list_links = []
 
-# Walk through each region that contains a list of soup objects corresponding to the # search of services for math tutors.
+# Walk through each region that contains a list of soup objects corresponding to the search of services for math tutors.
 for search_region in soup_objects_dict:
     # Initialize several lists to store relevant information for analysis
     price_list = []
@@ -184,15 +184,12 @@ for search_region in soup_objects_dict:
     link_list = []
     search_region_price_list = []
     
-    # Walk through each soup object in the list corresponding to the search region 
-    # and get the link of the soup object to scrape from.
+    # Walk through each soup object in the list corresponding to the search region and get the link of the soup object to scrape from.
     for soup in soup_objects_dict[search_region]:
         try:
             link = soup.find("meta", property="og:url")['content']
         except:
-            # In case a link can't be found, we add the soup object to a list
-            # to inspect later and set link to 'None', which we'll use to filter
-            # these results out later
+            # In case a link can't be found, we add the soup object to a list to inspect later and set link to 'None', which we'll use as a filter later so Python doesn't try to scrape from them
             link = 'None'
             error_list_links.append(soup)
             print("Couldn't get link")
@@ -205,22 +202,11 @@ for search_region in soup_objects_dict:
         # Get text of postingbody of the post and remove unwanted text.
         try:
             text = soup.find('section', id='postingbody').get_text()
-            #text = text.replace('\n', '')
-            text = text.replace(';', ',') # We do this so that we can use ; as 
-                                          # a delimiter when copying data from a 
-                                          # CSV file into a SQL database later.
-            text = text.replace('QR Code Link to This Post', '') # We do this 
-                                                                 # because this
-                                                                 # text from one
-                                                                 # post in
-                                                                 # particular was                                                                      # giving me 
-                                                                 # trouble and
-                                                                 # the best way I 
-                                                                 # could find to 
-                                                                 # handle it was 
-                                                                 # to remove the 
-                                                                 # text.
             text = text.replace(u'\xa0', u' ')
+            # We do this so that we can use ; as a delimiter when copying data from a CSV file into a SQL database later.
+            text = text.replace(';', ',') 
+            # We do this because one post in particular had this text and was giving me trouble.  The best way I could find to handle it was to remove the text.
+            text = text.replace('QR Code Link to This Post', '') 
 
         except:
             error_list_text.append(soup)
@@ -228,11 +214,7 @@ for search_region in soup_objects_dict:
             #body_text_list.append(text)
             print("Couldn't get text")
 
-        # Only let posts through that have a link to scrape from and those posts 
-        # where the region of the post matches the region of the search.  Some CL 
-        # search results are for neighboring areas, ones that come up in a different
-        # region than the region your search was from, which leads to duplicates in 
-        # areas like Los Angeles and San Diego.  This will weed out duplicates.
+        # Only let posts through that have a link to scrape from and those posts where the region of the post matches the region of the search.  Some CL search results are for neighboring areas, ones that come up in a different region than the region your search was from, which leads to duplicates in nearby areas like Los Angeles and San Diego.  This will weed out duplicates.
         if post_region == search_region and link!= 'None':
             region_list.append(post_region)
             link_list.append(link)
@@ -246,8 +228,7 @@ for search_region in soup_objects_dict:
 
 
 
-            # Intialize empty list to store the new prices after processing old
-            # prices.
+            # Intialize empty list to store the new prices after processing old prices.
             new_prices = []
             #print(F"Initialized new_prices: {new_prices}")
             # Walk through each price in the post.
@@ -262,30 +243,24 @@ for search_region in soup_objects_dict:
                 price = price.replace(',', '')
                 price = price.replace('>', '')
                 price = price.rstrip()   
-                # Some tutors give prices as a range ie '$30-40'.  In order to
-                # work with this data, I split based on the hyphen, then I can 
-                # use each price individually.
+                # Some tutors give prices as a range ie '$30-40'.  In order to work with this data, I split based on the hyphen, then I can use each price individually.
                 split_prices = price.split('-')
             #print(F"Here are the old_prices: {old_prices}")
             #print(F"Here are the split_prices: {split_prices}")
 
-                # Walk through each price in the posting, after any necessary splits 
-                # have been made.
+                # Walk through each price in the posting, after any necessary splits have been made.
                 for p in split_prices:
-                    # Only proceed if the post contained prices, ie if p is a non-
-                    # empty string.
+                    # Only proceed if the post contained prices, ie if p is a non-empty string.
                     if len(p)!=0:
-
                         try:
                             # Convert string price to int.
                             new_int = int(p)
+                            # Ignore prices which are too high to be reasonable.  Some posts included scholarship amounts as ways for a tutor to boast about their abilities, but this will only allow dollar amounts that are reasonable through.
                             if new_int <= 200:
                                 new_prices.append(new_int)
 
                         except:
-                            # Show which prices aren't able to convert to an int and 
-                            # the post they came from so we can isolate and fix the 
-                            # issue.
+                            # Show which prices aren't able to convert to an int and the post they came from so we can isolate and fix the issue if need be.
                             print(F'Error converting this price: {p}')
                             print(split_prices)
                             print()
@@ -294,34 +269,28 @@ for search_region in soup_objects_dict:
                             print(text)
                             print('-'*50)
                             print()
-                            # Set prices that can't be covered to NaN so the process 
-                            # can finish.
+                            # Set prices that can't be covered to NaN so the process can finish.
                             new_prices.append(np.nan) 
             #print(F"Here are the processed new_prices: {new_prices}")
                     #print(len(new_prices))
 
 
-            # Append prices before they're processed to a separate list, in case we
-            # need to isolate issues and fix them later.
+            # Append all prices from the post to a separate list, in case we need to isolate issues and fix them later.
 
             search_region_price_list.append(new_prices)
 
-            # For posts that had no prices listed, we append new_prices with "None"
+            # For posts that had no prices listed, we use null
             if len(new_prices)==0:
-                #price_list.append('None')
                 price_list.append(np.nan)
             # For posts that had a single price, we use it.
             elif len(new_prices)==1:
                 price_list.append(new_prices[0])
-            # For posts that contained two prices, we average them.  This helps with 
-            # posts that give a range of prices (ie $25-30).
+            # For posts that contained two prices, we average them.  This helps with posts that give a range of prices (ie $25-30).
             elif len(new_prices)==2:
                 avg_price_2 = np.average(new_prices)
                 price_list.append(avg_price_2)
-            # If a post has more than 3 prices, we append them, but this means we 
-            # have to inspect them manually and deal with them later.
+            # If a post has more than 3 prices, we append null.  We'll have to inspect these posts manually and deal with them later.
             else:
-                #price_list.append(new_prices)
                 price_list.append(np.nan)
             #print(price_list)
 
@@ -330,19 +299,13 @@ for search_region in soup_objects_dict:
             try:
                 city = soup.find(class_='postingtitletext').small.get_text()
 
-                # Because of the way CL operates, one has to choose a city from a
-                # radio button list that CL provides when one creates a post to offer 
-                # a service, however later, there's a field where they can type in 
-                # any city they want.  Many people will randomly choose a city from 
-                # the radio button list, but then  post their city as "online".  This 
-                # makes sure we capture them. 
+                # Because of the way CL operates, one has to choose a city from a radio button list, that CL provides, when one creates a post to offer a service, however later, there's a field where they can type in any city they want.  Many people will randomly choose a city from the radio button list, but then  post their city as "online".  This makes sure we capture them. 
                 re_pattern = re.compile('online')
                 online_flag = re.search(re_pattern, city.lower())
                 if online_flag:
                     city_list.append('Online')
                 else:
-                    # Strip out leading and trailing white spaces, replace
-                    # parentheses, and capitalize each word in the str.
+                    # Strip out leading and trailing white spaces, replace parentheses, and capitalize each word in the str.
                     city = city.strip()
                     city = city.replace('(', '').replace(')', '')        
                     city = city.title()
@@ -351,9 +314,7 @@ for search_region in soup_objects_dict:
                 # If a post has no city information, use None
                 city_list.append('None')
 
-            # Extract subregion of Craigslist that the post was made in.
-            # This will allow for comparison of prices across different cities
-            # within the same metropolitan sub_region.
+            # Extract subregion of Craigslist that the post was made in. This will allow for comparison of prices across different cities within the same metropolitan sub_region.
             try:
                 subregion = soup.find_all('li', class_='crumb subarea')[0].find('a').get_text()
                 subregion = subregion.title()
@@ -477,11 +438,7 @@ for search_region in soup_objects_dict:
 
 
 
-    # Append each temporary df to a list, which we can concatenate into one larger 
-    # df, later.
-
-
-
+    # Append each temporary df to a list, which we can concatenate into one larger df, later.
     df_list.append(temp_df)
 
 # %%
@@ -507,7 +464,7 @@ concat_df['posts_scraped_on'] = date_of_html_request
 concat_df['post_text'].duplicated().value_counts()
 
 # %%
-# Find indices of duplicate results, then drop them and reset indices.
+# Find indices of rows that have exactly the same post_text, then drop them and reset indices.
 duplicate_indices = concat_df[concat_df['post_text'].duplicated()==True].index
 df_exact_txt_dropped = concat_df.drop(index=duplicate_indices)
 df_exact_txt_dropped = df_exact_txt_dropped.reset_index(drop=True)
@@ -515,16 +472,24 @@ df_exact_txt_dropped['len_of_price_list']=df_exact_txt_dropped['price_list'].app
 df_exact_txt_dropped.shape
 
 # %%
+# Vectorize each posts' text and calculate the cosine similarity of each post against all other posts to determine which are duplicates
+## https://kanoki.org/2018/12/27/text-matching-cosine-similarity/
 text_for_comparison = df_exact_txt_dropped['post_text']
 vect = TfidfVectorizer(min_df=1, stop_words='english')
 tfidf = vect.fit_transform(text_for_comparison)
 pairwise_similarity = tfidf * tfidf.T
+
+# Store results in a 2D NumPy array
 pairwise_array = pairwise_similarity.toarray()
+
+# The diagonal of our array is the similarity of a post to itself, which we fill will null so that these are essentially ignored
 np.fill_diagonal(pairwise_array, np.nan)
+
+# Many people on CL will change their posting in ways to avoid CL flagging them as duplicates for removal.  This finds all posts above a certain similarity threshold.
 argwhere_array = np.argwhere(pairwise_array > 0.63)
-argwhere_array
 
 # %% tags=[]
+# In order to remove the duplicates, we need to restructure our 2D NumPy array in such a way that the first column is the index of the post that has a duplicate and the second column contains a list of the indices of the duplicate post(s).
 df_row_idx = []
 dup_row_idx = []
 for row in argwhere_array:
@@ -546,29 +511,16 @@ for row in argwhere_array:
 #list(zip(df_row_idx, dup_row_idx))
 
 # %%
+# Create match column in our df, initialize it so that each row contains the index of that row and convert to a list, so we can iterate over it
 df_exact_txt_dropped['match'] = np.array(df_exact_txt_dropped.index.values, dtype='object')
 df_exact_txt_dropped['match'] = df_exact_txt_dropped['match'].apply(lambda x: [x])
 
+# For rows that are duplicate postings, we overwrite the match column with the indices of all other rows that have duplicated text
 match_col_idx = df_exact_txt_dropped.columns.get_loc('match')
 df_exact_txt_dropped.iloc[df_row_idx, match_col_idx] = dup_row_idx
 #df_exact_txt_dropped['match'] = df_exact_txt_dropped['match'].apply(lambda x: [x])
 
-# %%
 df_exact_txt_dropped['match']
-
-# %% tags=[]
-with pd.option_context('display.max_colwidth', None):
-  x=0
-  #display(df_with_prices.iloc[x]['post_text'])
-  display(df_exact_txt_dropped.iloc[x]['link'])
-  display(df_exact_txt_dropped.iloc[x]['post_text'])
-
-# %% tags=[]
-with pd.option_context('display.max_colwidth', None):
-  x=471
-  #display(df_with_prices.iloc[x]['post_text'])
-  display(df_exact_txt_dropped.iloc[x]['link'])
-  display(df_exact_txt_dropped.iloc[x]['post_text'])
 
 # %%
 indices = []
@@ -595,8 +547,10 @@ indices = []
 #             #print(i, item, row['match'])
 #             print(e, i, item, row['match'])
 
+
 df_no_dups = df_exact_txt_dropped.copy()
 
+# Iterate over each row and remove all rows that have duplicated text
 for i, row in df_no_dups.iterrows():
     indices.append(i)
     drop_idx = []
@@ -612,19 +566,16 @@ for i, row in df_no_dups.iterrows():
 
 
 # %%
+# Check shape when we dropped posts with exactly the same post_text against the shape after we dropped text deemed similar by cosine similarity 
 df_exact_txt_dropped.shape, df_no_dups.shape
-
-# %%
-
-# %%
 
 # %% [markdown]
 # ### Dropping posts that contained no prices, which aren't helpful for our analysis
 
 # %%
+# Use the len of price_list to find posts that contained no prices
 df_no_dups['len_of_price_list'] = df_no_dups['price_list'].apply(lambda x: len(x))
 
-# %%
 # Filter out results that don't have a price and reset indices.
 df_with_prices = df_no_dups[df_no_dups['len_of_price_list'] > 0]
 df_with_prices = df_with_prices.reset_index(drop=True)
@@ -640,8 +591,8 @@ num_posts = len(concat_df)
 percent_unique = unique_posts_count / num_posts * 100
 percent_with_prices = post_with_prices_count / num_posts * 100
 
-print(F"Out of {num_posts}, there were {unique_posts_count} posts that weren't duplicated, or {percent_unique:.2f}%.")
-print(F"There were {post_with_prices_count} posts that had prices included and weren't duplicates.")
+print(F"Out of {num_posts} posts, there were {unique_posts_count} that were unique, or {percent_unique:.2f}%.")
+print(F"Out of those, there were {post_with_prices_count} posts that had prices included.")
 
 print(F"Only {percent_with_prices:.2f}% of the posts that we scraped remain.")
 
@@ -667,6 +618,7 @@ posts_with_mult_prices = df_null_prices.shape[0]
 print(F"There were {posts_with_mult_prices} posts with price marked null.")
 
 # %%
+# Store posts with null prices to CSV to manually inspect later
 df_null_prices = df_null_prices.drop(columns=['len_of_price_list', 'match'])
 df_null_prices.to_csv('./posts_to_investigate/{}_posts_with_null_prices.csv'.format(date_of_html_request), index=False)
 
@@ -690,7 +642,7 @@ with pd.option_context('display.max_colwidth', None):
 # * $30$/hr Science, $40$/hr math, come and try a first session for the reduced price of $20$.
 #   * Special offers
 #
-# into a single price.  Other posts repeated their prices multiple times, so we distill those down to a single price as well, then mark any of the entries we changed as being cleaned.
+# into a single price.  Other posts repeated their prices multiple times, so we distill those down to a single price as well.
 
 # %%
 price_col_idx = df_with_prices.columns.get_loc('price')
@@ -709,7 +661,7 @@ except:
 # %%
 # Because the ad says $90 in person, $60 for online, and Corona Virus pricing of
 # $40 for online weekdays, I'm using the $40 per hour rate because it seems the
-# most reasonable.
+# most reasonable and is most similar to what I'm competing against.
 kenari_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('kenaritutor.com')==True].index
 
 try:
@@ -750,7 +702,7 @@ except:
     pass  
 
 # %%
-#This guy has weird price structuring, but I used his hourly rate for each time interval, $100 for 80 minutes, $115 for 100 minutes, $130 for 120 minutes, then averaged those hourly rates to estimate for what a single hour would cost.
+#This guy has weird price structuring, but I used his hourly rate for each time interval, $100 for 80 minutes, $115 for 100 minutes, $130 for 120 minutes, then averaged those hourly rates to estimate what a single hour would cost.
 oakland_exp_tutor_online_idx = df_with_prices[df_with_prices['post_text'].str.contains('I received a full scholarship to University of Cincinnati and held a 3.8 GPA through my master’s program in aerospace')==True].index
 
 oakland_tutor_avg_rate = ((100/80) + (115/100) + (130/120)) * 60 / 3
@@ -829,7 +781,7 @@ except:
     pass    
 
 # %%
-# Post includes many prices, but states $55/hr for Precalc and $80/hr for Calculus, so I took the average of those prices
+# Post includes many prices, but states $55/hr for Precalc and $80/hr for Calculus, which are primarily what I help with, so I took the average of those prices
 aerospace_engineer_idx = df_with_prices[df_with_prices['post_text'].str.contains('in the aerospace industry looking', regex=False)==True].index
 
 try:
@@ -852,8 +804,7 @@ except:
 
 # %%
 # The add says $55/hr for K-12, then $65/hr for AP/Honors, as well as Pre-calc, 
-# etc., I'm going to average the two prices.  Set needs cleaning column to False 
-# b/c the prices have been cleaned.
+# etc., I'm going to average the two prices.
 park_academy_idx = df_with_prices[df_with_prices['post_text'].str.contains('(949) 490-0872', regex=False)==True].index
 
 try:
@@ -969,6 +920,7 @@ else:
 df_with_prices[df_with_prices['len_of_price_list']==2][['price','price_list']]
 
 # %%
+# Inspect posts manually, one by one
 with pd.option_context('display.max_colwidth', None):
   x=136
   #display(df_with_prices.iloc[x]['post_text'])
@@ -1056,9 +1008,8 @@ john_the_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('48
 
 df_with_prices.iloc[john_the_tutor_idx, price_col_idx] = 45
 
-# %%
-
-# %%
+# %% [markdown]
+# Conclusion: Averaging doesn't make sense for a good chunk of these posts, but averaging is helpful for others.  I need to come up with a better process here, but will leave that for later...
 
 # %% [markdown]
 # ## Investigating posts with extreme prices.  Are there any price outliers that we need to clean?
@@ -1069,6 +1020,7 @@ df_with_prices.iloc[john_the_tutor_idx, price_col_idx] = 45
 df_with_prices[(df_with_prices['price']>=100) | (df_with_prices['price']<=20)][['price', 'post_text', 'price_list']]
 
 # %%
+# Manually inspect these posts one by one
 with pd.option_context('display.max_colwidth', None):
   x=40
   #display(df_with_prices.iloc[x]['post_text'])
@@ -1080,7 +1032,7 @@ with pd.option_context('display.max_colwidth', None):
 # ### Dropping posts with extreme prices that aren't relevant
 
 # %%
-# This ad is for poker tutoring/coaching, not really what I'm competing against, so we drop all instances.  He also mentions he tutors math in this post, but he has a separate post up that we've captured which has his math tutoring pricing information.
+# This ad is for poker tutoring/coaching, not really what I'm competing against, so we drop it.  He also mentions he tutors math in this post, but he has a separate post, that we've captured, which has his math tutoring pricing information.
 australia_daniel_idx = df_with_prices[df_with_prices['post_text'].str.contains("I'm available as a dealer if you need one", regex=False)==True].index
 
 df_with_prices.drop(labels=australia_daniel_idx, inplace=True)
@@ -1120,7 +1072,7 @@ except:
 # ### Store results locally as CSV files
 
 # %%
-# Drop unnecessary columns.  CL links will expire after some number of days, the prices_need_cleaning and price_to_investigate columns have been manually inspected, and lastly we've distilled the multiple prices in the price_list down to a single value
+# Drop unnecessary columns.
 df_for_sql = df_with_prices.drop(labels=['link', 'price_list', 'len_of_price_list', 'match'], axis=1)
 
 # In order for psycopg2 to parse our CSV file correctly later, we need to escape all new line characters by adding an additional \ in front of \n.
@@ -1164,7 +1116,7 @@ conn.commit()
 cur = conn.cursor()
 
 # Copy data from our CSV file into database.  
-### Note, we can use the ; separator freely because we replaced all instances of semicolons in a post to commas during the preprocessing stage, ensuring that psycopg2 won't misinterpret a semicolon in the body of a post as a separator, splitting a row in the CSV file into too many columns as a result.
+### Note, we can use the ; separator freely because we replaced all instances of semicolons in post_text to commas during the preprocessing stage, ensuring that psycopg2 won't misinterpret a semicolon in the body of a post as a separator.
 ### Also, we must specify null="" because Python represents null values as an empty string when writing to a CSV file and psycopg2 needs to know how null values are represented in the CSV file in order to properly insert null values into the database
 with open('./csv_files/' + str(date_of_html_request) + '_all_regions_with_prices.csv', 'r') as file:
     next(file) # Skip the header row
@@ -1180,17 +1132,6 @@ conn.commit()
 # # Scratch work
 
 # %%
-df_with_prices[df_with_prices['price'].isnull()==True]
-
-# %%
-with pd.option_context('display.max_colwidth', None):
-  x=98
-  #display(df_with_prices.iloc[x]['post_text'])
-  display(df_with_prices.iloc[x]['link'])
-  display(df_with_prices.iloc[x]['post_text'])
-  display(df_with_prices.iloc[x]['price'])
-
-# %%
 
 # %%
 
@@ -1199,7 +1140,7 @@ with pd.option_context('display.max_colwidth', None):
 # %%
 
 # %% [markdown] tags=[] toc-hr-collapsed=true
-# # Transforming Craigslist data REMOVING ENTRIES AND QUERYING WITH SQL LATER -- TO BE CONTINUED
+# # IDEA: Transforming Craigslist data REMOVING ENTRIES AND QUERYING WITH SQL LATER -- TO BE CONTINUED
 
 # %% [markdown] tags=[]
 # ### Are there any posts that might need manual cleaning?  This would include:
