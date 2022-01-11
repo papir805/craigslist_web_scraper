@@ -4,8 +4,9 @@ As a math tutor, with a majority of my business coming from word-of-mouth recomm
 
 Important Python libraries used: `Requests`, `BeautifulSoup`, `Pandas`, `NumPy`, `Psycopg2`, and `Sklearn`, among others.
 
-## How to use - 
-If you're interested in seeing just the script and Python code that I wrote, open up .py file in the main directory of this repository.  **Recommended: If you'd like to see what the Python script can actually do, you can view the code *and* the outputs of that code using the .ipynb Jupyter notebook file.**
+## How to use: 
+If you're interested in seeing just the script and Python code that I wrote, open up .py file in the main directory of this repository. 
+**Recommended: If you'd like to see what the Python script can actually do, you can view the code *and* the outputs of that code using the .ipynb Jupyter notebook file.**
 
 ## Method:
 
@@ -13,7 +14,7 @@ If you're interested in seeing just the script and Python code that I wrote, ope
 2. *Transform* data to my own specifications using `Pandas`, `NumPy`, and `Sklearn`
 3. *Load* data into PostgreSQL database using `Psycopg2`
 
-### To-Do List:
+# To-Do List:
 - [ ] Capture prices containing decimals using regular expressions
 - [X] Improve countdown timer during extraction process **(completed 1/9/22)**
 - [ ] Modularize extraction process by breaking code into smaller chunks
