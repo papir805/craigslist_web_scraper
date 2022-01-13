@@ -4,7 +4,7 @@ As a math tutor, with a majority of my business coming from word-of-mouth recomm
 
 Important Python libraries used: `Requests`, `BeautifulSoup`, `Pandas`, `NumPy`, `Psycopg2`, and `Sklearn`, among others.
 
-![Extract, Transform, Load](https://github.com/papir805/craigslist_web_scraper/blob/master/etl._thumbnail.png =100x200)
+![Extract, Transform, Load](https://github.com/papir805/craigslist_web_scraper/blob/master/etl._thumbnail.png)
 
 ## How to use this repository - 
 If you're interested in seeing just the script and Python code that I wrote, [click here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.3craigslist_scraper_tutoring.py)
