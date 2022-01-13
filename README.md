@@ -6,13 +6,9 @@ Important Python libraries used: `Requests`, `BeautifulSoup`, `Pandas`, `NumPy`,
 
 ![Extract, Transform, Load](https://github.com/papir805/craigslist_web_scraper/blob/master/etl._thumbnail.png)
 
-## How to use - 
+## How to use this repository - 
 If you're interested in seeing just the script and Python code that I wrote, [click here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.3craigslist_scraper_tutoring.py)
 **Recommended: If you'd like to see what the Python script actually does, without running the script yourself, you can view the code *and* the outputs of that code by clicking [here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.3craigslist_scraper_tutoring.ipynb) or [here](https://nbviewer.org/github/papir805/craigslist_web_scraper/blob/master/v1.3craigslist_scraper_tutoring.ipynb).**
-
-## How to use: 
-If you're interested in seeing just the script and Python code that I wrote, open up .py file in the main directory of this repository. 
-**Recommended: If you'd like to see what the Python script can actually do, you can view the code *and* the outputs of that code using the .ipynb Jupyter notebook file.**
 
 
 ## Method:
