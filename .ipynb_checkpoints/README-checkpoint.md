@@ -7,9 +7,9 @@ Important Python libraries used: `Requests`, `BeautifulSoup`, `Pandas`, `NumPy`,
 ![Extract, Transform, Load](https://github.com/papir805/craigslist_web_scraper/blob/master/etl._thumbnail.png)
 
 ## How to use this repository - 
-If you're interested in seeing just the script and Python code that I wrote, [click here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.3craigslist_scraper_tutoring.py)
+If you're interested in seeing just the script and Python code that I wrote, [click here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.4craigslist_scraper_tutoring.py)
 
-**Recommended: If you'd like to see what the Python script actually does, without running the script yourself, you can view the code *and* the outputs of that code by clicking [here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.3craigslist_scraper_tutoring.ipynb) or [here](https://nbviewer.org/github/papir805/craigslist_web_scraper/blob/master/v1.3craigslist_scraper_tutoring.ipynb).**
+**Recommended: If you'd like to see what the Python script actually does, without running the script yourself, you can view the code *and* the outputs of that code by clicking [here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.4craigslist_scraper_tutoring.ipynb) or [here](https://nbviewer.org/github/papir805/craigslist_web_scraper/blob/master/v1.4craigslist_scraper_tutoring.ipynb).**
 
 
 ## Method:
@@ -31,10 +31,9 @@ If you're interested in seeing just the script and Python code that I wrote, [cl
   - [ ] When three or more prices are given, I have to manually inspect each post and figure out how to distill to down a single price
   - [ ] When a post has an online price schedule vs. an in-person price schedule, I'd like to be able to keep track of the pricing difference
 - [X] Extract from top 10 regions in US **(completed 1/1/22)**
-- [ ] Extract from *all* regions on https://www.craigslist.org/about/sites
-  - [ ] Keep track of which state a given post was from
+- [X] Extract from *all* regions on https://www.craigslist.org/about/sites **(completed 1/26/22)**
+  - [X] Keep track of which state a given post was from completed **(completed 1/26/22)**
   - [ ] Keep track of West, Central, or East coast
 - [ ] Scrape price from post title
 - [ ] Test limits of how quickly I can make HTML requests w/o a ban
-- [ ] Bypass search results when "Zero local results found.  Here are some from nearby areas."
-- [ ] max files open bug
+- [X] Bypass search results when "Zero local results found.  Here are some from nearby areas." **(completed 1/26/22)**
