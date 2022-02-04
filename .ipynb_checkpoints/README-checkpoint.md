@@ -35,3 +35,6 @@ If you're interested in seeing just the script and Python code that I wrote, [cl
   - [ ] Keep track of which state a given post was from
   - [ ] Keep track of West, Central, or East coast
 - [ ] Scrape price from post title
+- [ ] Test limits of how quickly I can make HTML requests w/o a ban
+- [ ] Bypass search results when "Zero local results found.  Here are some from nearby areas."
+- [ ] max files open bug
