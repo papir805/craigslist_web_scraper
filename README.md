@@ -31,7 +31,9 @@ If you're interested in seeing just the script and Python code that I wrote, [cl
   - [ ] When three or more prices are given, I have to manually inspect each post and figure out how to distill to down a single price
   - [ ] When a post has an online price schedule vs. an in-person price schedule, I'd like to be able to keep track of the pricing difference
 - [X] Extract from top 10 regions in US **(completed 1/1/22)**
-- [ ] Extract from *all* regions on https://www.craigslist.org/about/sites
-  - [ ] Keep track of which state a given post was from
+- [X] Extract from *all* regions on https://www.craigslist.org/about/sites **(completed 1/26/22)**
+  - [X] Keep track of which state a given post was from completed **(completed 1/26/22)**
   - [ ] Keep track of West, Central, or East coast
 - [ ] Scrape price from post title
+- [ ] Test limits of how quickly I can make HTML requests w/o a ban
+- [X] Bypass search results when "Zero local results found.  Here are some from nearby areas." **(completed 1/26/22)**

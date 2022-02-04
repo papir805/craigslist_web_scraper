@@ -56,6 +56,345 @@ session.mount('http://', adapter)
 session.mount('https://', adapter)
 
 # %%
+all_sites_response = session.get('https://craigslist.org/about/sites')
+
+# %%
+all_sites_soup = BeautifulSoup(all_sites_response.text, 'html.parser')
+
+# %%
+us_sites = all_sites_soup.body.section.div.next_sibling.next_sibling.next_sibling.next_sibling.next_sibling.next_sibling
+
+# %% tags=[] jupyter={"outputs_hidden": true}
+all_sites_soup.find_all('ul')
+
+# %% tags=[] jupyter={"outputs_hidden": true}
+all_sites_soup.find_all('h4')
+
+# %%
+
+# %% jupyter={"outputs_hidden": true} tags=[]
+all_sites_soup.body.h1.next_sibling.next_sibling
+
+# %% tags=[]
+all_sites_soup.body.h1.next_sibling.next_sibling.li.href
+
+# %% tags=[]
+all_sites_soup.body.h1.next_sibling.next_sibling.li.text
+
+# %%
+all_sites_soup.body.h1.next_sibling.next_sibling.a.attrs['href']
+
+# %%
+len(us_sites.find_all('ul'))
+
+# %% tags=[]
+us_sites.find_all(class_='colmask')
+
+# %%
+len(us_sites.find_all('h4'))
+
+# %%
+us_sites.h4
+
+# %%
+
+# %%
+
+# %%
+
+# %%
+
+# %%
+
+# %% jupyter={"outputs_hidden": true} tags=[]
+num_states = len(us_sites.find_all('h4'))
+start_state = us_sites.h4
+start_flag = True
+for i in range(num_states):
+    if start_flag:
+        current_state = start_state
+        print(current_state.text)
+        start_flag = False
+    else:
+        new_state = current_state.next_sibling
+        print(new_state.text)
+    # new_soup = current_state.next_sibling
+    # print(new_soup)
+
+# %% tags=[]
+us_sites.find_all('h4')
+
+# %% jupyter={"outputs_hidden": true} tags=[]
+us_sites.contents
+
+# %%
+us_sites.contents[0].text
+
+# %% tags=[] jupyter={"outputs_hidden": true}
+all_sites_soup.article.section
+
+# %% tags=[]
+all_sites_soup.article.section.find_all(['h4','li'], string='Alabama')
+
+# %%
+all_sites_soup.article.section.find_all(a='href')
+
+# %%
+all_sites_soup.article.section.find_all(atrrs={'href':'https://auburn.craigslist.org/'})
+
+# %%
+us_sites.find_all('h4')[0].find_all('ul')
+
+# %%
+us_sites.find_all('h4')
+
+# %%
+len(us_sites.find_all('ul'))
+
+# %%
+li_list[0]
+
+# %%
+li_list[0].contents
+
+# %% jupyter={"outputs_hidden": true} tags=[]
+us_sites.find_all('ul')
+
+# %%
+us_sites.find_all('ul')[0].find_all('li')[0].a['href'].replace('https://','').replace('.craigslist.org/','')
+
+# %% jupyter={"outputs_hidden": true} tags=[]
+for child in all_sites_soup.article.section.children:
+    print(child.text)
+    print(child)
+
+# %% [markdown]
+# # IMPORTANT
+
+# %%
+zip_list = list(zip(us_sites.find_all('h4'),us_sites.find_all('ul')))
+
+# %% jupyter={"outputs_hidden": true} tags=[]
+for i, ele in enumerate(zip_list):
+    print(ele[0].text)
+    href_list = ele[1].find_all('li')
+    for href in href_list:
+        print(href.a['href'].replace('https://','').replace('.craigslist.org/',''))
+    print()
+
+# %% tags=[] jupyter={"outputs_hidden": true}
+li_list = us_sites.find_all('li')
+for i in range(len(li_list)):
+    print(li_list[i].get_text())
+    try:
+        print(li_list[i].a['href'])
+        #print(type(li_list[i].a['href']))
+    except:
+        pass
+
+# %%
+zip_list = list(zip(us_sites.find_all('h4'),us_sites.find_all('ul')))
+state_list = []
+long_region_list = []
+
+for i, ele in enumerate(zip_list):
+    current_state = ele[0].text
+    #state_list.append(current_state)
+    href_list = ele[1].find_all('li')
+    for href in href_list:
+        state_list.append(current_state)
+        region = href.a['href'].replace('https://','').replace('.craigslist.org/','')
+        long_region_list.append(region)
+
+# %%
+len(state_list), len(long_region_list)
+
+# %%
+states_tags = us_sites.find_all('h4')
+regions_tags = us_sites.find_all('ul')
+
+states_and_regions = list(zip(states_tags, regions_tags))
+state_dict = {}
+
+for ele in states_and_regions:
+    current_state = ele[0].text
+    href_list = ele[1].find_all('li')
+    temp_region_list = []
+    for href in href_list:
+        region = href.a['href'].replace('https://','').replace('.craigslist.org/','')
+        temp_region_list.append(region)
+        state_dict[current_state]=temp_region_list
+
+# %% tags=[]
+for state, regions in state_dict.items():
+    print(state)
+    print(state_dict[state])
+    
+
+
+# %%
+
+region = state_dict['Alabama'][0]
+current_region = region.replace('_', '')
+current_response = session.get('https://' + current_region + '.craigslist.org/d/services/search/bbb?query=math%20tutor&sort=rel')
+print(F"{region} 1 response received.")
+next_response = current_response
+next_soup = BeautifulSoup(next_response.text, 'html.parser')
+html_suffix = next_soup.find(class_='button next')
+
+
+
+if html_suffix != '' or html_suffix is not None:
+    print('html_suffix is not blank')
+    new_button = 'https://' + current_region + '.craigslist.org' + html_suffix
+    current_response = session.get(new_button)
+    region_response_list.append(current_response)
+
+
+    time.sleep(sleep_timer)
+    print(F"{region} {i} response received.")
+    print(F"Waiting {sleep_timer} seconds...")
+    print()
+else:
+    html_suffix.get('href')# Store all search pages for math tutor
+    
+    
+    
+    
+    
+    
+    
+  
+
+# %%
+for region in state_dict['Alabama']:
+    print(region)
+
+# %%
+type(next_soup.find(class_='button next'))
+
+# %%
+# Walk through each region in our list of regions_to_scrape to get the HTML page corresponding to a search for "math tutor" in the services section
+response_dict = {}
+sleep_timer = 10
+
+for region in state_dict['Alabama']:
+    # This gets the first page of search results
+    i=1
+    current_region = region.replace('_', '')
+    current_response = session.get('https://' + current_region + '.craigslist.org/d/services/search/bbb?query=math%20tutor&sort=rel')
+    print(F"{region} {i} response received.")
+    print(F"Waiting {sleep_timer} seconds...")
+    print()
+
+    time.sleep(sleep_timer)
+
+    region_response_list = []
+    region_response_list.append(current_response)
+
+    # This gets all subsequent pages, using the next button
+    is_next_button = True
+    while is_next_button:
+        i+=1
+        try:
+            print('try block')
+            next_response = current_response
+            next_soup = BeautifulSoup(next_response.text, 'html.parser')
+            html_suffix = next_soup.find(class_='button next').get('href')
+            if html_suffix is None:
+                is_next_button = False
+            if html_suffix != '':
+                print('html_suffix is not blank')
+                new_button = 'https://' + current_region + '.craigslist.org' + html_suffix
+                current_response = session.get(new_button)
+                region_response_list.append(current_response)
+
+
+                time.sleep(sleep_timer)
+                print(F"{region} {i} response received.")
+                print(F"Waiting {sleep_timer} seconds...")
+                print()
+            else:
+                is_next_button = False
+                print('html_suffix is blank')
+                print(F"Last response for {region} received.  Process completed.")
+                print()
+        except:
+            pass
+
+    # Store all search pages for math tutor
+    response_dict[state] = region_response_list
+
+# %%
+for state, regions in state_dict.items():
+    print(state)
+    print(state_dict[state])
+    
+    
+    
+    # Walk through each region in our list of regions_to_scrape to get the HTML page corresponding to a search for "math tutor" in the services section
+    response_dict = {}
+    sleep_timer = 10
+
+    for region in state_dict[state]:
+        # This gets the first page of search results
+        i=1
+        current_region = region.replace('_', '')
+        current_response = session.get('https://' + current_region + '.craigslist.org/d/services/search/bbb?query=math%20tutor&sort=rel')
+        print(F"{region} {i} response received.")
+        print(F"Waiting {sleep_timer} seconds...")
+        print()
+
+        time.sleep(sleep_timer)
+
+        region_response_list = []
+        region_response_list.append(current_response)
+
+        # This gets all subsequent pages, using the next button
+        is_next_button = True
+        while is_next_button:
+            i+=1
+            try:
+                next_response = current_response
+                next_soup = BeautifulSoup(next_response.text, 'html.parser')
+                html_suffix = next_soup.find(class_='button next').get('href')
+                if html_suffix != '':
+                    new_button = 'https://' + current_region + '.craigslist.org' + html_suffix
+                    current_response = session.get(new_button)
+                    region_response_list.append(current_response)
+
+
+                    time.sleep(sleep_timer)
+                    print(F"{region} {i} response received.")
+                    print(F"Waiting {sleep_timer} seconds...")
+                    print()
+                else:
+                    is_next_button = False
+                    print(F"Last response for {region} received.  Process completed.")
+                    print()
+            except:
+                pass
+
+        # Store all search pages for math tutor
+        response_dict[state] = region_response_list
+
+# %%
+test_dict = {}
+test_dict[('Alabama', 'mobile')] = ['l', 'b', 'g']
+
+# %%
+test_dict[('Alabama','mobile')]
+
+# %%
+for key in test_dict.keys():
+    print(key[0])
+
+# %% [markdown]
+# # end IMPORTANT
+
+# %%
+
+# %%
 # Walk through each region in our list of regions_to_scrape to get the HTML page corresponding to a search for "math tutor" in the services section
 
 response_dict = {}
