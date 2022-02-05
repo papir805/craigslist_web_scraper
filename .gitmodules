@@ -1,0 +1,3 @@
+[submodule "census-regions"]
+	path = census-regions
+	url = https://github.com/papir805/census-regions.git
