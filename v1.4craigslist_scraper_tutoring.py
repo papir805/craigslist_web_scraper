@@ -443,6 +443,18 @@ len(error_list_text), len(error_list_links)
 concat_df = pd.concat(df_list, ignore_index=True)
 concat_df.shape
 
+# %%
+census_regions = pd.read_csv('../craigslist_web_scraper/census-regions/us_census_regions.csv')
+concat_df_w_regions = concat_df.merge(right=census_regions[['State','Region','Division']], how='left', left_on='state', right_on='State')
+
+concat_df_w_regions.drop(labels='State', axis=1, inplace=True)
+concat_df_w_regions.rename(columns={'Region':'US_region'}, inplace=True)
+
+concat_df_w_regions.head()
+
+# %%
+concat_df_w_regions[concat_df_w_regions['Region'].isna()==True]
+
 # %% [markdown]
 # ### Dropping Duplicate posts
 
@@ -987,7 +999,7 @@ df_with_prices.iloc[john_the_tutor_idx, price_col_idx] = 45
 # Prices >= 100 or <= 20 are what I would consider to be extreme prices.  Let's investigate them.
 
 # %%
-df_with_prices[(df_with_prices['price']>=100) | (df_with_prices['price']<=20)][['price', 'post_text', 'price_list']]
+df_with_prices[(df_with_prices['price']>=100) | (df_with_prices['price']<=20)][['price', 'post_text', 'price_list']] 
 
 # %%
 # Manually inspect these posts one by one
