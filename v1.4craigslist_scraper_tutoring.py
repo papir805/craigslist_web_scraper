@@ -30,7 +30,7 @@ import psycopg2
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls, get_urls_of_posts, process_and_get_urls
+from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls, get_urls_of_posts, process_and_get_urls, convert_urls_to_soup_objs
 
 # %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
@@ -197,7 +197,13 @@ all_urls = test_dict
 # %%
 import sys
 sys.setrecursionlimit(100000)
+
+# %%
+
 # %store all_urls
+
+# %%
+# %store
 
 # %%
 # %store -r
@@ -214,54 +220,66 @@ num_posts = 0
 for state_and_region in all_urls:
     num_posts += len(all_urls[state_and_region])
 
-# %% [markdown]
+# %%
+soup_objects = convert_urls_to_soup_objs(all_urls)
+
+# %% [markdown] tags=[]
 # ## Getting soup object response for each individual post in a state/region combo
 
 # %% tags=[]
-soup_objects_dict = {}
+# soup_objects_dict = {}
 
-num_posts_remaining = num_posts
-current_time = dt.datetime.now()
-max_seconds_until_finish = num_posts * 4
-max_finish_time = current_time + dt.timedelta(seconds=max_seconds_until_finish)
+# num_posts_remaining = num_posts
+# current_time = dt.datetime.now()
+# max_seconds_until_finish = num_posts * 4
+# max_finish_time = current_time + dt.timedelta(seconds=max_seconds_until_finish)
 
-print(F"Current time is {current_time.strftime('%H:%M:%S')}")
-print(F"Process estimated to finish before {max_finish_time.strftime('%H:%M:%S')}")
-print()
+# print(F"Current time is {current_time.strftime('%H:%M:%S')}")
+# print(F"Process estimated to finish before {max_finish_time.strftime('%H:%M:%S')}")
+# print()
 
-for count, key in enumerate(posts_dict, start=1):
-    # Walk through each region and create a list of soup_objects to scrape from by storing them into memory.  This way we only have to send these get requests once and Craigslist doesn't ban us for sending the same https requests over and over
-    soup_objects_list = []
-    for i, post in enumerate(posts_dict[key]):
+# for count, key in enumerate(posts_dict, start=1):
+#     # Walk through each region and create a list of soup_objects to scrape from by storing them into memory.  This way we only have to send these get requests once and Craigslist doesn't ban us for sending the same https requests over and over
+#     soup_objects_list = []
+#     for i, post in enumerate(posts_dict[key]):
         
-        # Impose a timer to help prevent from getting banned for too many HTTP requests in too short a time period.
-        random_int = random.randint(2,4)
-        time.sleep(random_int)
-        current_link = post.a.get('href')
-        response_object = session.get(current_link)
-        soup_object = BeautifulSoup(response_object.text, 'html.parser')
-        soup_objects_list.append(soup_object) 
+#         # Impose a timer to help prevent from getting banned for too many HTTP requests in too short a time period.
+#         random_int = random.randint(2,4)
+#         time.sleep(random_int)
+#         current_link = post.a.get('href')
+#         response_object = session.get(current_link)
+#         soup_object = BeautifulSoup(response_object.text, 'html.parser')
+#         soup_objects_list.append(soup_object) 
         
-        # Impose condition that every 10th post will trigger something printed to the screen.  This part of the code is a long process and I wanted something to help keep track of how much progress has been made
-        if (i !=0) and ((i-1) % 10 == 9):
-            print(F"Post number {i} in {key} is being extracted.")
+#         # Impose condition that every 10th post will trigger something printed to the screen.  This part of the code is a long process and I wanted something to help keep track of how much progress has been made
+#         if (i !=0) and ((i-1) % 10 == 9):
+#             print(F"Post number {i} in {key} is being extracted.")
     
-    soup_objects_dict[key] = soup_objects_list
-    if count != len(posts_dict):
-        num_posts_remaining -= len(posts_dict[key])
-        current_time = dt.datetime.now()
-        new_seconds_until_finish = num_posts_remaining * 5
-        new_max_finish_time = current_time + dt.timedelta(seconds=new_seconds_until_finish)
+#     soup_objects_dict[key] = soup_objects_list
+#     if count != len(posts_dict):
+#         num_posts_remaining -= len(posts_dict[key])
+#         current_time = dt.datetime.now()
+#         new_seconds_until_finish = num_posts_remaining * 5
+#         new_max_finish_time = current_time + dt.timedelta(seconds=new_seconds_until_finish)
         
-        state = key[0]
-        region = key[1]
+#         state = key[0]
+#         region = key[1]
         
-        print(F"Soup objects for {state}: {region} acquired.  Waiting for next region...")
-        print(F"Process will now finish by {new_max_finish_time.strftime('%H:%M:%S')}")
-        print()
-    else:
-        print()
-        print(F"Soup objects for {key} acquired.  Process complete.")
+#         print(F"Soup objects for {state}: {region} acquired.  Waiting for next region...")
+#         print(F"Process will now finish by {new_max_finish_time.strftime('%H:%M:%S')}")
+#         print()
+#     else:
+#         print()
+#         print(F"Soup objects for {key} acquired.  Process complete.")
+
+# %%
+# %store soup_objects
+
+# %% tags=[] jupyter={"outputs_hidden": true}
+soup_objects[('California', 'inlandempire')]
+
+# %%
+# %store 
 
 # %% [markdown]
 # ## Pre-Processing

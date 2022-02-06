@@ -171,8 +171,81 @@ def get_urls_of_posts(search_pages):
 
 
 def process_and_get_urls(state_and_region_dict):
-    
+
     search_pg_urls = get_region_search_pg_urls(state_and_region_dict)
     urls = get_urls_of_posts(search_pg_urls)
     
     return urls
+
+
+
+def convert_urls_to_soup_objs(urls_dict):
+    
+    import datetime as dt
+    import random
+    import time
+    import requests
+    from requests.packages.urllib3.util.retry import Retry
+    from requests.adapters import HTTPAdapter
+    from bs4 import BeautifulSoup
+    from tqdm.notebook import tqdm_notebook
+    
+    soup_objects_dict = {}
+    
+    num_posts = 0
+    for state_and_region in urls_dict:
+        num_posts += len(urls_dict[state_and_region])
+    num_posts_remaining = num_posts
+    
+    session = requests.Session()
+    retry = Retry(connect=5, backoff_factor=0.5)
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
+    # current_time = dt.datetime.now()
+    # max_seconds_until_finish = num_posts * 4
+    # max_finish_time = current_time + dt.timedelta(seconds=max_seconds_until_finish)
+
+    #print(F"Current time is {current_time.strftime('%H:%M:%S')}")
+    #print(F"Process estimated to finish before {max_finish_time.strftime('%H:%M:%S')}")
+    #print()
+
+    for key in tqdm_notebook(urls_dict, desc="Total Progress", position=0, leave=True):
+        # Walk through each region and create a list of soup_objects to scrape from by storing them into memory.  This way we only have to send these get requests once and Craigslist doesn't ban us for sending the same https requests over and over
+        soup_objects_list = []
+
+        state = key[0]
+        region = key[1]
+        for post in tqdm_notebook(urls_dict[key], desc=F"Creating Soup Object for {state}: {region}", leave=False, position=1):
+
+            # Impose a timer to help prevent from getting banned for too many HTTP requests in too short a time period.
+            random_int = random.randint(2,4)
+            time.sleep(random_int)
+            current_link = post.a.get('href')
+            response_object = session.get(current_link)
+            soup_object = BeautifulSoup(response_object.text, 'html.parser')
+            soup_objects_list.append(soup_object) 
+
+            # Impose condition that every 10th post will trigger something printed to the screen.  This part of the code is a long process and I wanted something to help keep track of how much progress has been made
+            #if (i !=0) and ((i-1) % 10 == 9):
+                #print(F"Post number {i} in {key} is being extracted.")
+
+        soup_objects_dict[key] = soup_objects_list
+#         if count != len(urls_dict):
+#             num_posts_remaining -= len(urls_dict[key])
+#             current_time = dt.datetime.now()
+#             new_seconds_until_finish = num_posts_remaining * 5
+#             new_max_finish_time = current_time + dt.timedelta(seconds=new_seconds_until_finish)
+
+#             state = key[0]
+#             region = key[1]
+
+            #print(F"Soup objects for {state}: {region} acquired.  Waiting for next region...")
+            #print(F"Process will now finish by {new_max_finish_time.strftime('%H:%M:%S')}")
+            #print()
+        #else:
+            #print()
+            #print(F"Soup objects for {key} acquired.  Process complete.")
+
+    return soup_objects_dict

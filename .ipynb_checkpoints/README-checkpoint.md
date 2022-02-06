@@ -19,6 +19,7 @@ If you're interested in seeing just the script and Python code that I wrote, [cl
 3. *Load* data into PostgreSQL database using `Psycopg2`
 
 # To-Do List:
+- [ ] Make the search work for any regular expression in CL services section
 - [ ] Capture prices containing decimals using regular expressions
 - [X] Improve countdown timer during extraction process **(completed 1/9/22)**
 - [ ] Modularize extraction process by breaking code into smaller chunks
