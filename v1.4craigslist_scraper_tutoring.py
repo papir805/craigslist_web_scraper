@@ -31,6 +31,13 @@ import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 # %%
+
+# %%
+
+# %%
+3*5
+
+# %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
 session = requests.Session()
 retry = Retry(connect=5, backoff_factor=0.5)
