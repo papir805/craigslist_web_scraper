@@ -30,7 +30,7 @@ import psycopg2
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls
+from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls, get_urls_of_posts
 
 # %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
@@ -81,8 +81,15 @@ state_to_region_dict = get_state_to_region_dict(states_tags, regions_tags)
 # ## Crawl each state/region of Craigslist
 # Get the URL that corresponds to a search of the services section for "math tutor."  Craigslist is limited to showing 120 results per page, so if a region has more than 120 postings, we extract URLs corresponding to the next page of results, until there is no next button anymore and we've extracted all URLs for that region.
 
+# %%
+# import itertools
+
+# test_dict = dict(itertools.islice(state_to_region_dict.items(), 2))
+
 # %% tags=[]
 search_page_url_dict = get_region_search_pg_urls(state_to_region_dict, session)
+
+# %%
 
 # %% tags=[]
 # # Walk through each state in our state_Dict to get the HTML page corresponding to a search for "math tutor" in the services section
@@ -165,32 +172,42 @@ search_page_url_dict = get_region_search_pg_urls(state_to_region_dict, session)
 # ## Get URL for each individual posting in a state/region combo
 
 # %%
-# Walk through each state/region combo to get a list of all individual postings for math tutoring in the results pages we searched up earlier.
-posts_dict = {}
-for key, responses in response_dict.items():
-    state = key[0]
-    region = key[1]
-    #current_region = region
-    region_posts = []
-    for response in responses:
-        current_html_soup = BeautifulSoup(response.text, 'html.parser')
-        current_posts = current_html_soup.find_all('li', class_='result-row')
-        wanted_posts = []
-        for post in current_posts:
-# Many CL pages have "results from nearby areas", for instance some results for sandiego.craigslist.org show up in the losangeles.craigslist.org.  By comparing the region that we're currently scraping from against the URL of the posts, we can detect if it's from a nearby region or not.  To avoid duplicates and make the script finish more quickly, We only want to include posts where the URL of the post matches the region we're scraping from
-            if post.a.get('href').replace('https://','').split('.')[0] == region:
-                wanted_posts.append(post)
-        region_posts.extend(wanted_posts)
-    posts_dict[(state,region)] = region_posts
+# # Walk through each state/region combo to get a list of all individual postings for math tutoring in the results pages we searched up earlier.
+# posts_dict = {}
+# for key, responses in response_dict.items():
+#     state = key[0]
+#     region = key[1]
+#     #current_region = region
+#     region_posts = []
+#     for response in responses:
+#         current_html_soup = BeautifulSoup(response.text, 'html.parser')
+#         current_posts = current_html_soup.find_all('li', class_='result-row')
+#         wanted_posts = []
+#         for post in current_posts:
+# # Many CL pages have "results from nearby areas", for instance some results for sandiego.craigslist.org show up in the losangeles.craigslist.org.  By comparing the region that we're currently scraping from against the URL of the posts, we can detect if it's from a nearby region or not.  To avoid duplicates and make the script finish more quickly, We only want to include posts where the URL of the post matches the region we're scraping from
+#             if post.a.get('href').replace('https://','').split('.')[0] == region:
+#                 wanted_posts.append(post)
+#         region_posts.extend(wanted_posts)
+#     posts_dict[(state,region)] = region_posts
+
+# %%
+# %store -r
+
+# %%
+search_page_url_dict = stored_search_pages
+
+# %%
+
+urls_of_posts_dict = get_urls_of_posts(search_page_url_dict)
 
 # %%
 # Calculate how many posts in total are to be scraped for countdown timer
 
-num_regions = len(posts_dict)
+num_regions = len(urls_of_posts_dict)
 
 num_posts = 0
-for region in posts_dict:
-    num_posts += len(posts_dict[region])
+for region in urls_of_posts_dict:
+    num_posts += len(urls_of_posts_dict[region])
 
 # %% [markdown]
 # ## Getting soup object response for each individual post in a state/region combo

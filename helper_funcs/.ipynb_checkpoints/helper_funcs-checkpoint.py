@@ -43,8 +43,8 @@ def get_region_search_pg_urls(st_rg_dict, html_session):
     from tqdm.notebook import tqdm
     # Walk through each state in our st_reg_dict to get the HTML page corresponding to a search for "math tutor" in the services section
     
-    t_start = time.ctime()
-    print(F"Process started at {t_start}")
+    t_start = time.time()
+    print(F"Process started at {time.ctime()}")
     
     
     search_pg_url_dict = {}
@@ -118,9 +118,43 @@ def get_region_search_pg_urls(st_rg_dict, html_session):
             # Store all search pages for math tutor
             search_pg_url_dict[(state, region)] = region_response_list
             
-    t_end = time.ctime()
+    t_end = time.time()
     t_diff = t_end - t_start
-    print(F"URLs of search pages finished extracting at {t_end}")
+    print(F"URLs of search pages finished extracting at {time.ctime()}")
     print(F"Total process time: {t_diff}")
             
     return search_pg_url_dict
+
+
+
+
+def get_urls_of_posts(search_pages):
+    """
+    Input:
+        search_pages - Dict: A Dictionary with key: (state, region) that maps to a list of search results for that state/region on Craigslist
+    Output:
+        urls_of_posts - Dict: A dictionary with key: (state, region) that maps to a list of URLs for all postings in that state/region
+    
+    Walk through each state/region combo in search_pages to extract the URLs of each search result, for that state/region.
+    """
+    from bs4 import BeautifulSoup
+    from tqdm.notebook import tqdm_notebook
+    
+    urls_of_posts = {}
+    for key, responses in tqdm_notebook(search_pages.items(), desc="Extracting URLs"):
+        state = key[0]
+        region = key[1]
+        #current_region = region
+        region_posts = []
+        for response in responses:
+            current_html_soup = BeautifulSoup(response.text, 'html.parser')
+            current_posts = current_html_soup.find_all('li', class_='result-row')
+            wanted_posts = []
+            for post in current_posts:
+    # Many CL pages have "results from nearby areas", for instance some results for sandiego.craigslist.org show up in the losangeles.craigslist.org.  By comparing the region that we're currently scraping from against the URL of the posts, we can detect if it's from a nearby region or not.  To avoid duplicates and make the script finish more quickly, We only want to include posts where the URL of the post matches the region we're scraping from
+                if post.a.get('href').replace('https://','').split('.')[0] == region:
+                    wanted_posts.append(post)
+            region_posts.extend(wanted_posts)
+        urls_of_posts[(state,region)] = region_posts
+        
+    return urls_of_posts
