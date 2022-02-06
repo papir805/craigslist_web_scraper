@@ -290,6 +290,7 @@ def extract_post_features(soup_objects_dict, include_errors=False):
     import numpy as np
     from bs4 import BeautifulSoup
     import re
+    import datetime as dt
     
     df_list = []
     error_list_text = []
@@ -489,6 +490,11 @@ def extract_post_features(soup_objects_dict, include_errors=False):
     # Concatenate the dfs for each region into one larger df and check its shape.
     concat_df = pd.concat(df_list, ignore_index=True)
     
+    # Get date of html request to label our output with.
+    date_of_html_request = str(dt.date.today())
+    # Include the date posts were scraped on to track tutoring prices over time.
+    concat_df['posts_scraped_on'] = date_of_html_request
+    
     concat_df_shape = concat_df.shape
     print(F"df shape: {concat_df_shape}")
     
@@ -499,3 +505,138 @@ def extract_post_features(soup_objects_dict, include_errors=False):
         return concat_df, error_list_text, link_error_list
     else:
         return concat_df
+
+
+def rows_before_and_after(df1, df2):
+    num_rows_before = df1.shape[0]
+    num_rows_after = df2.shape[0]
+    num_rows_diff = abs(num_rows_before - num_rows_after)
+    print(F"Number of rows before dropping duplicates: {num_rows_before}")
+    print(F"Number of rows before after duplicates: {num_rows_after}")
+    print(F"A difference of {num_rows_diff} rows.") 
+    
+    
+def drop_exact_duplicates(input_df, details=True):
+    """
+    Input:
+        asdasd
+    Output:
+        asdasd
+        
+    Process: asdasd
+    """
+    
+    import pandas as pd
+    
+    duplicate_indices = input_df[input_df['post_text'].duplicated()==True].index
+    df_exact_txt_dropped = input_df.drop(index=duplicate_indices)
+    df_exact_txt_dropped = df_exact_txt_dropped.reset_index(drop=True)
+    
+    if details==True:
+        rows_before_and_after(input_df, df_exact_txt_dropped)
+    
+    return df_exact_txt_dropped
+
+
+def drop_posts_with_similar_text(input_df, similarity_threshold = 0.63, drop_match_col = True, details=True):
+    """
+    
+    """
+    
+    import pandas as pd
+    import numpy as np
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    
+
+    
+        # Vectorize each posts' text and calculate the cosine similarity of each post against all other posts to determine which are duplicates
+    ## https://kanoki.org/2018/12/27/text-matching-cosine-similarity/
+    text_for_comparison = input_df['post_text']
+    vect = TfidfVectorizer(min_df=1, stop_words='english')
+    tfidf = vect.fit_transform(text_for_comparison)
+    pairwise_similarity = tfidf * tfidf.T
+
+    # Store results in a 2D NumPy array
+    pairwise_array = pairwise_similarity.toarray()
+
+    # The diagonal of our array is the similarity of a post to itself, which we fill will null so that these are essentially ignored
+    np.fill_diagonal(pairwise_array, np.nan)
+
+    # Many people on CL will change their posting in ways to avoid CL flagging them as duplicates for removal.  This finds all posts above a certain similarity threshold.
+    argwhere_array = np.argwhere(pairwise_array > similarity_threshold)
+    
+    # In order to remove the duplicates, we need to restructure our 2D NumPy array in such a way that the first column is the index of the post that has a duplicate and the second column contains a list of the indices of the duplicate post(s).
+    df_row_idx = []
+    dup_row_idx = []
+    for row in argwhere_array:
+        current_idx = row[0]
+        #print(F"Current row: {row}, Current idx: {current_idx}")
+        duplicate_list = []
+        if current_idx in df_row_idx:
+            continue
+        else:
+            df_row_idx.append(current_idx)
+        for other_row in argwhere_array:
+            other_idx = other_row[1]
+            #print(F"Here's the other_row: {other_row}, Other idx: {other_idx}")
+            if current_idx == other_row[0]:
+                duplicate_list.append(other_idx)
+        #print(F"This is the current dup_list: {duplicate_list}")
+        #print()
+        dup_row_idx.append(duplicate_list)
+    #list(zip(df_row_idx, dup_row_idx))
+    
+    # Create match column in our df, which is initialized as a list of all indices in our df.  This means for each row, the value of the match column is the row index.  Convert that index value to a list, so we can iterate over it in future steps
+    input_df['match'] = np.array(input_df.index.values, dtype='object')
+    input_df['match'] = input_df['match'].apply(lambda x: [x])
+
+    # For rows that are duplicate postings, we overwrite the value of match column to contain the indices of all other rows that contain duplicated text
+    match_col_idx = input_df.columns.get_loc('match')
+    input_df.iloc[df_row_idx, match_col_idx] = dup_row_idx
+    #input_df['match'] = input_df['match'].apply(lambda x: [x])
+
+    #input_df['match']
+    
+    indices = []
+
+    df_no_dups = input_df.copy()
+
+    # Iterate over each row and remove all rows that have duplicated text
+    for i, row in df_no_dups.iterrows():
+        indices.append(i)
+        drop_idx = []
+        #print(i, row['match'])
+        try:
+            for item in row['match']:
+                if item not in indices:
+                    drop_idx.append(item)
+            df_no_dups = df_no_dups.drop(index=drop_idx, errors="ignore")
+        except Exception as e:
+            #print(i, item, row['match'])
+            print(e, i, item, row['match'])
+    
+    if drop_match_col==True:
+        input_df = input_df.drop('match', axis=1)
+        df_no_dups = df_no_dups.drop('match', axis=1)
+    
+    if details==True:
+        rows_before_and_after(input_df, df_no_dups)
+    
+    return df_no_dups
+
+
+def drop_posts_without_prices(input_df, details=True):
+    
+    # Use the len of price_list to find posts that contained no prices
+    input_df['len_of_price_list'] = input_df['price_list'].apply(lambda x: len(x))
+
+    # Filter out results that don't have a price and reset indices.
+    df_with_prices = input_df[input_df['len_of_price_list'] > 0]
+    df_with_prices = df_with_prices.reset_index(drop=True)
+    
+    if details==True:
+        rows_before_and_after(input_df, df_with_prices)
+    
+    return df_with_prices
+
+
