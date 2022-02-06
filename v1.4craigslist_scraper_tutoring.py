@@ -30,7 +30,7 @@ import psycopg2
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls, get_urls_of_posts
+from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls, get_urls_of_posts, process_and_get_urls
 
 # %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
@@ -87,9 +87,10 @@ state_to_region_dict = get_state_to_region_dict(states_tags, regions_tags)
 # test_dict = dict(itertools.islice(state_to_region_dict.items(), 2))
 
 # %% tags=[]
-search_page_url_dict = get_region_search_pg_urls(state_to_region_dict, session)
+# search_page_url_dict = get_region_search_pg_urls(state_to_region_dict)
 
 # %%
+all_urls = process_and_get_urls(state_to_region_dict)
 
 # %% tags=[]
 # # Walk through each state in our state_Dict to get the HTML page corresponding to a search for "math tutor" in the services section
@@ -190,23 +191,28 @@ search_page_url_dict = get_region_search_pg_urls(state_to_region_dict, session)
 #         region_posts.extend(wanted_posts)
 #     posts_dict[(state,region)] = region_posts
 
+# %% tags=[]
+all_urls = test_dict
+
+# %%
+import sys
+sys.setrecursionlimit(100000)
+# %store all_urls
+
 # %%
 # %store -r
 
 # %%
-search_page_url_dict = stored_search_pages
-
-# %%
-urls_of_posts_dict = get_urls_of_posts(search_page_url_dict)
+# urls_of_posts_dict = get_urls_of_posts(search_page_url_dict)
 
 # %%
 # Calculate how many posts in total are to be scraped for countdown timer
 
-num_regions = len(urls_of_posts_dict)
+num_regions = len(all_urls)
 
 num_posts = 0
-for region in urls_of_posts_dict:
-    num_posts += len(urls_of_posts_dict[region])
+for state_and_region in all_urls:
+    num_posts += len(all_urls[state_and_region])
 
 # %% [markdown]
 # ## Getting soup object response for each individual post in a state/region combo

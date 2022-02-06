@@ -27,7 +27,7 @@ def get_state_to_region_dict(st_tags, rg_tags):
 
 
 
-def get_region_search_pg_urls(st_rg_dict, html_session):
+def get_region_search_pg_urls(st_rg_dict):
     """
     Input:
         st_rg_dict - Dictionary with key: state that maps to a list of regions in that state
@@ -39,22 +39,31 @@ def get_region_search_pg_urls(st_rg_dict, html_session):
     
     import random
     import time
+    import requests
+    from requests.packages.urllib3.util.retry import Retry
+    from requests.adapters import HTTPAdapter
     from bs4 import BeautifulSoup
     from tqdm.notebook import tqdm_notebook
-    # Walk through each state in our st_reg_dict to get the HTML page corresponding to a search for "math tutor" in the services section
+
     
     t_start = time.time()
     print(F"Process started at {time.ctime()}")
     
+    session = requests.Session()
+    retry = Retry(connect=5, backoff_factor=0.5)
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
     
     search_pg_url_dict = {}
     
-    for state in tqdm_notebook(st_rg_dict.keys(), desc='Extracting URLs of all search pages'):        
+    # Walk through each state in our st_reg_dict to get the HTML page corresponding to a search for "math tutor" in the services section
+    for state in tqdm_notebook(st_rg_dict.keys(), desc='Total Progress'):     
         for region in tqdm_notebook(st_rg_dict[state], desc=F"Currently extracting URLs for {state}", leave=False):
             # This gets the first page of search results
             i=1
 
-            current_response = html_session.get('https://' + region + '.craigslist.org/d/services/search/bbb?query=math%20tutor&sort=rel')
+            current_response = session.get('https://' + region + '.craigslist.org/d/services/search/bbb?query=math%20tutor&sort=rel')
 
             sleep_timer = random.randint(2,4)
             time.sleep(sleep_timer)
@@ -92,7 +101,7 @@ def get_region_search_pg_urls(st_rg_dict, html_session):
                             #print(i, html_suffix)
                             #print('html_suffix is not blank')
                             new_button = 'https://' + region + '.craigslist.org' + html_suffix
-                            current_response = html_session.get(new_button)
+                            current_response = session.get(new_button)
                             region_response_list.append(current_response)
 
                             sleep_timer = random.randint(2,4)
@@ -158,3 +167,12 @@ def get_urls_of_posts(search_pages):
         urls_of_posts[(state,region)] = region_posts
         
     return urls_of_posts
+
+
+
+def process_and_get_urls(state_and_region_dict):
+    
+    search_pg_urls = get_region_search_pg_urls(state_and_region_dict)
+    urls = get_urls_of_posts(search_pg_urls)
+    
+    return urls
