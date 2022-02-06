@@ -30,12 +30,7 @@ import psycopg2
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# %%
-
-# %%
-
-# %%
-3*5
+from helper_funcs.helper_funcs import get_state_to_region_dict
 
 # %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
@@ -61,23 +56,32 @@ us_sites = all_sites_soup.body.section.div.next_sibling.next_sibling.next_siblin
 states_tags = us_sites.find_all('h4')
 regions_tags = us_sites.find_all('ul')
 
-states_and_regions = list(zip(states_tags, regions_tags))
-
 # %% [markdown]
 # ## Get URL for each region of Craigslist
 
 # %%
-# For each of the HTML tags, we get the text of which state the region belonged to and the text of the region's name.  We now have a dictionary with keys as states that map to a list of regions in that state
-state_dict = {}
+type(states_tags[0])
 
-for ele in states_and_regions:
-    current_state = ele[0].text
-    href_list = ele[1].find_all('li')
-    temp_region_list = []
-    for href in href_list:
-        region = href.a['href'].replace('https://','').replace('.craigslist.org/','')
-        temp_region_list.append(region)
-        state_dict[current_state]=temp_region_list
+# %%
+state_to_region_dict = get_state_to_region_dict(states_tags, regions_tags)
+
+# %%
+state_to_region_dict['California']
+
+# %%
+# states_and_regions = list(zip(states_tags, regions_tags))
+
+# # For each of the HTML tags, we get the text of which state the region belonged to and the text of the region's name.  We now have a dictionary with keys as states that map to a list of regions in that state
+# state_dict = {}
+
+# for ele in states_and_regions:
+#     current_state = ele[0].text
+#     href_list = ele[1].find_all('li')
+#     temp_region_list = []
+#     for href in href_list:
+#         region = href.a['href'].replace('https://','').replace('.craigslist.org/','')
+#         temp_region_list.append(region)
+#         state_dict[current_state]=temp_region_list
 
 # %% [markdown]
 # ## Crawl each state/region of Craigslist
