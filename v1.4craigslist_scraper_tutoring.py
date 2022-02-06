@@ -30,7 +30,7 @@ import psycopg2
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls, get_urls_of_posts, process_and_get_urls, convert_urls_to_soup_objs
+from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls, get_urls_of_posts, process_and_get_urls, convert_urls_to_soup_objs, extract_post_features
 
 # %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
@@ -275,11 +275,19 @@ soup_objects = convert_urls_to_soup_objs(all_urls)
 # %%
 # %store soup_objects
 
-# %% tags=[] jupyter={"outputs_hidden": true}
-soup_objects[('California', 'inlandempire')]
+# %% tags=[]
+soup_objects[('Alabama', 'bham')]
 
 # %%
 # %store 
+
+# %%
+import itertools
+
+soup_objects_test_dict = dict(itertools.islice(soup_objects.items(), 20))
+
+# %%
+# %store soup_objects_test_dict
 
 # %% [markdown]
 # ## Pre-Processing
