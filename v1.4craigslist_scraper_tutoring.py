@@ -30,7 +30,7 @@ import psycopg2
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from helper_funcs.helper_funcs import get_state_to_region_dict
+from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls
 
 # %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
@@ -60,13 +60,7 @@ regions_tags = us_sites.find_all('ul')
 # ## Get URL for each region of Craigslist
 
 # %%
-type(states_tags[0])
-
-# %%
 state_to_region_dict = get_state_to_region_dict(states_tags, regions_tags)
-
-# %%
-state_to_region_dict['California']
 
 # %%
 # states_and_regions = list(zip(states_tags, regions_tags))
@@ -88,81 +82,84 @@ state_to_region_dict['California']
 # Get the URL that corresponds to a search of the services section for "math tutor."  Craigslist is limited to showing 120 results per page, so if a region has more than 120 postings, we extract URLs corresponding to the next page of results, until there is no next button anymore and we've extracted all URLs for that region.
 
 # %% tags=[]
-# Walk through each state in our state_Dict to get the HTML page corresponding to a search for "math tutor" in the services section
-response_dict = {}
+search_page_url_dict = get_region_search_pg_urls(state_to_region_dict, session)
 
-for state in state_dict.keys():
+# %% tags=[]
+# # Walk through each state in our state_Dict to get the HTML page corresponding to a search for "math tutor" in the services section
+# response_dict = {}
 
-    for region in state_dict[state]:
-        # This gets the first page of search results
-        i=1
-        
-        current_response = session.get('https://' + region + '.craigslist.org/d/services/search/bbb?query=math%20tutor&sort=rel')
-        
-        sleep_timer = random.randint(2,4)
-        time.sleep(sleep_timer)
-        
-        print(F"Response #{i} for {state}: {region} received.")
-        #print(F"Waiting {sleep_timer} seconds...")
-        #print()
-        
-        region_response_list = []
-        region_response_list.append(current_response)
+# for state in state_dict.keys():
 
-        # This gets all subsequent pages, using the next button from the search page
-        is_next_button = True
-        while is_next_button:
-            try:
-                next_response = current_response
-                next_soup = BeautifulSoup(next_response.text, 'html.parser')
+#     for region in state_dict[state]:
+#         # This gets the first page of search results
+#         i=1
+        
+#         current_response = session.get('https://' + region + '.craigslist.org/d/services/search/bbb?query=math%20tutor&sort=rel')
+        
+#         sleep_timer = random.randint(2,4)
+#         time.sleep(sleep_timer)
+        
+#         print(F"Response #{i} for {state}: {region} received.")
+#         #print(F"Waiting {sleep_timer} seconds...")
+#         #print()
+        
+#         region_response_list = []
+#         region_response_list.append(current_response)
+
+#         # This gets all subsequent pages, using the next button from the search page
+#         is_next_button = True
+#         while is_next_button:
+#             try:
+#                 next_response = current_response
+#                 next_soup = BeautifulSoup(next_response.text, 'html.parser')
                 
-# CL search pages have one of the following:
-    # 1) A next button:
-        # - when the region contains more than 120 posts for a given search
-    # 2) A greyed out next button:
-        # - when you've reached the last page of search results and there are no more
-        # OR
-        # - when a page has less than 120 results.
-    # 3) No next button:
-        # - when a page has less than 120 results
-# html suffix is None type when a next button isn't shown
-# html suffix is '' when the next button is greyed out.  This can happen in either case 2) or 3) from above
-# The while loop only needs to be peformed in case 1) when there is a next button you can click
-                html_suffix = next_soup.find(class_='button next')
-                #print(html_suffix)
-                if html_suffix is not None:
-                    html_suffix = html_suffix.get('href')
-                    #print("html_suffix is not none")
-                    if html_suffix != '':
-                        i += 1
-                        #print(i, html_suffix)
-                        #print('html_suffix is not blank')
-                        new_button = 'https://' + region + '.craigslist.org' + html_suffix
-                        current_response = session.get(new_button)
-                        region_response_list.append(current_response)
+# # CL search pages have one of the following:
+#     # 1) A next button:
+#         # - when the region contains more than 120 posts for a given search
+#     # 2) A greyed out next button:
+#         # - when you've reached the last page of search results and there are no more
+#         # OR
+#         # - when a page has less than 120 results.
+#     # 3) No next button:
+#         # - when a page has less than 120 results
+# # html suffix is None type when a next button isn't shown
+# # html suffix is '' when the next button is greyed out.  This can happen in either case 2) or 3) from above
+# # The while loop only needs to be peformed in case 1) when there is a next button you can click
+#                 html_suffix = next_soup.find(class_='button next')
+#                 #print(html_suffix)
+#                 if html_suffix is not None:
+#                     html_suffix = html_suffix.get('href')
+#                     #print("html_suffix is not none")
+#                     if html_suffix != '':
+#                         i += 1
+#                         #print(i, html_suffix)
+#                         #print('html_suffix is not blank')
+#                         new_button = 'https://' + region + '.craigslist.org' + html_suffix
+#                         current_response = session.get(new_button)
+#                         region_response_list.append(current_response)
 
-                        sleep_timer = random.randint(2,4)
-                        time.sleep(sleep_timer)
-                        print(F"{region} {i} response received.")
-                        print(F"Waiting {sleep_timer} seconds...")
-                        print()
-                    else:
-                        is_next_button = False
-                        #print('html_suffix is blank')
-                        print(F"Last response for {region} received.  Process completed.")
-                        print()
-                else:
-                    is_next_button = False
-                    #print('next_button is None')
-                    print(F"Last response for {region} received.  Process completed.")
-                    print()
-                    pass
-            except:
-                is_next_button = False
-                pass
+#                         sleep_timer = random.randint(2,4)
+#                         time.sleep(sleep_timer)
+#                         print(F"{region} {i} response received.")
+#                         print(F"Waiting {sleep_timer} seconds...")
+#                         print()
+#                     else:
+#                         is_next_button = False
+#                         #print('html_suffix is blank')
+#                         print(F"Last response for {region} received.  Process completed.")
+#                         print()
+#                 else:
+#                     is_next_button = False
+#                     #print('next_button is None')
+#                     print(F"Last response for {region} received.  Process completed.")
+#                     print()
+#                     pass
+#             except:
+#                 is_next_button = False
+#                 pass
 
-        # Store all search pages for math tutor
-        response_dict[(state, region)] = region_response_list
+#         # Store all search pages for math tutor
+#         response_dict[(state, region)] = region_response_list
 
 # %% [markdown]
 # ## Get URL for each individual posting in a state/region combo
