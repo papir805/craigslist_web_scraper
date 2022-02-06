@@ -40,7 +40,7 @@ def get_region_search_pg_urls(st_rg_dict, html_session):
     import random
     import time
     from bs4 import BeautifulSoup
-    from tqdm.notebook import tqdm
+    from tqdm.notebook import tqdm_notebook
     # Walk through each state in our st_reg_dict to get the HTML page corresponding to a search for "math tutor" in the services section
     
     t_start = time.time()
@@ -49,8 +49,8 @@ def get_region_search_pg_urls(st_rg_dict, html_session):
     
     search_pg_url_dict = {}
     
-    for state in tqdm(st_rg_dict.keys(), desc='Extracting URLs of all search pages'):        
-        for region in tqdm(st_rg_dict[state], desc=F"Currently extracting URLs for {state}", leave=False):
+    for state in tqdm_notebook(st_rg_dict.keys(), desc='Extracting URLs of all search pages'):        
+        for region in tqdm_notebook(st_rg_dict[state], desc=F"Currently extracting URLs for {state}", leave=False):
             # This gets the first page of search results
             i=1
 

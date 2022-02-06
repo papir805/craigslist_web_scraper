@@ -197,7 +197,6 @@ search_page_url_dict = get_region_search_pg_urls(state_to_region_dict, session)
 search_page_url_dict = stored_search_pages
 
 # %%
-
 urls_of_posts_dict = get_urls_of_posts(search_page_url_dict)
 
 # %%
