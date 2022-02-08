@@ -23,6 +23,7 @@ If you're interested in seeing just the script and Python code that I wrote, [cl
 - [ ] Capture prices containing decimals using regular expressions
 - [X] Improve countdown timer during extraction process **(completed 1/9/22)**
 - [ ] Modularize extraction process by breaking code into smaller chunks
+- [ ] Modularize drop_posts_with_similar_text
     - [ ] Modularize extract_post_features()
   - [ ] Incorporate unit tests for each module
 - [X] input `Null` when a price is not able to be found from a post **(completed 1/7/22)**

@@ -62,8 +62,9 @@ def get_region_search_pg_urls(st_rg_dict):
     search_pg_url_dict = {}
     
     # Walk through each state in our st_reg_dict to get the HTML page corresponding to a search for "math tutor" in the services section
-    for state in tqdm_notebook(st_rg_dict.keys(), desc='Total Progress'):     
-        for region in tqdm_notebook(st_rg_dict[state], desc=F"Currently extracting URLs for {state}", leave=False):
+    for state in tqdm_notebook(st_rg_dict.keys(), desc='Total Progress'): 
+        num_state_regions = len(st_rg_dict[state])
+        for region in tqdm_notebook(st_rg_dict[state], desc=F"Currently extracting URLs for {num_state_regions} regions in {state}", leave=False):
             # This gets the first page of search results
             i=1
 
@@ -239,7 +240,7 @@ def convert_urls_to_soup_objs(urls_dict):
 
         state = key[0]
         region = key[1]
-        for post in tqdm_notebook(urls_dict[key], desc=F"Creating Soup Object for {state}: {region}", leave=False, position=1):
+        for post in tqdm_notebook(urls_dict[key], desc=F"Creating Soup Objects for each posting in {state}: {region}", leave=False, position=1):
 
             # Impose a timer to help prevent from getting banned for too many HTTP requests in too short a time period.
             random_int = random.randint(2,4)
@@ -638,5 +639,21 @@ def drop_posts_without_prices(input_df, details=True):
         rows_before_and_after(input_df, df_with_prices)
     
     return df_with_prices
+
+
+# def slim_df_down(input_df, drop_similar=True, drop_without_price=True, similarity_threshold=0.63):
+#     """
+    
+#     """
+    
+#     df_post_text_dups_dropped = drop_exact_duplicates(input_df)
+    
+#     if drop_similar==True and drop_without_price = False:
+#         df_post_text_dups_and_similar_dropped = drop_posts_with_similar_text(df_post_text_dups_dropped, similarity_threshold)
+    
+#     if drop_without_price==True:
+#         df_no_dups_no_similar_that_have_price = drop_posts_without_prices(df_post_text_dups_and_similar_dropped)
+        
+        
 
 

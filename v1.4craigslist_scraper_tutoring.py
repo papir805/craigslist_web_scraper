@@ -30,7 +30,7 @@ import psycopg2
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from helper_funcs.helper_funcs import get_state_to_region_dict, get_region_search_pg_urls, get_urls_of_posts, process_and_get_urls, convert_urls_to_soup_objs, extract_post_features
+from helper_funcs.helper_funcs import *
 
 # %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
@@ -284,7 +284,7 @@ soup_objects[('Alabama', 'bham')]
 # %%
 import itertools
 
-soup_objects_test_dict = dict(itertools.islice(soup_objects.items(), 20))
+soup_objects_test_dict = dict(itertools.islice(soup_objects.items(), 30))
 
 # %%
 # %store soup_objects_test_dict
@@ -530,6 +530,9 @@ concat_df = extract_post_features(soup_objects)
 concat_df['post_text'].duplicated().value_counts()
 
 # %%
+df_exact_txt_dropped = drop_exact_duplicates(concat_df)
+
+# %%
 # # Find indices of rows that have exactly the same post_text, then drop them and reset indices.
 # duplicate_indices = concat_df[concat_df['post_text'].duplicated()==True].index
 # df_exact_txt_dropped = concat_df.drop(index=duplicate_indices)
@@ -611,25 +614,28 @@ concat_df['post_text'].duplicated().value_counts()
 # %%
 
 # %%
-# Check shape when we dropped posts with exactly the same post_text against the shape after we dropped text deemed similar by cosine similarity 
-df_exact_txt_dropped.shape, df_no_dups.shape
+# # Check shape when we dropped posts with exactly the same post_text against the shape after we dropped text deemed similar by cosine similarity 
+# df_exact_txt_dropped.shape, df_no_dups.shape
+
+# %%
+df_similar_txt_dropped = drop_posts_with_similar_text(df_exact_txt_dropped, similarity_threshold=0.63)
 
 # %% [markdown]
 # ### Dropping posts that contained no prices, which aren't helpful for our analysis
 
 # %%
-# Use the len of price_list to find posts that contained no prices
-df_no_dups['len_of_price_list'] = df_no_dups['price_list'].apply(lambda x: len(x))
+# # Use the len of price_list to find posts that contained no prices
+# df_no_dups['len_of_price_list'] = df_no_dups['price_list'].apply(lambda x: len(x))
 
-# Filter out results that don't have a price and reset indices.
-df_with_prices = df_no_dups[df_no_dups['len_of_price_list'] > 0]
-df_with_prices = df_with_prices.reset_index(drop=True)
-
-# %%
-df_with_prices.shape
+# # Filter out results that don't have a price and reset indices.
+# df_with_prices = df_no_dups[df_no_dups['len_of_price_list'] > 0]
+# df_with_prices = df_with_prices.reset_index(drop=True)
 
 # %%
-unique_posts_count = len(df_no_dups)
+df_with_prices = drop_posts_without_prices(df_similar_txt_dropped)
+
+# %%
+unique_posts_count = len(df_similar_txt_dropped)
 post_with_prices_count = len(df_with_prices)
 num_posts = len(concat_df)
 
@@ -1117,8 +1123,10 @@ except:
 # ### Store results locally as CSV files
 
 # %%
+date_of_html_request = str(dt.date.today())
+
 # Drop unnecessary columns.
-df_for_sql = df_with_prices.drop(labels=['link', 'price_list', 'len_of_price_list', 'match'], axis=1)
+df_for_sql = df_with_prices.drop(labels=['link', 'price_list', 'len_of_price_list'], axis=1)
 
 # In order for psycopg2 to parse our CSV file correctly later, we need to escape all new line characters by adding an additional \ in front of \n.
 df_for_sql['post_text'] = df_for_sql['post_text'].str.replace('\n', '\\n')
@@ -1130,7 +1138,7 @@ df_for_sql.to_csv("./csv_files/{}_all_regions_with_prices.csv".format(date_of_ht
 concat_df.to_csv("./csv_files/{}_all_regions_posts.csv".format(date_of_html_request), index=False)
 
 # %%
-df_no_dups.to_csv('./csv_files/{}_all_regions_no_dups.csv'.format(date_of_html_request), index=False, sep=';')
+df_similar_txt_dropped.to_csv('./csv_files/{}_all_regions_no_dups.csv'.format(date_of_html_request), index=False, sep=';')
 
 # %% [markdown]
 # ### Importing into PostgreSQL database
