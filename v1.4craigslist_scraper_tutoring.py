@@ -31,6 +31,8 @@ import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from helper_funcs.helper_funcs import *
+from helper_funcs.clean_three_or_more_prices import *
+from helper_funcs.clean_two_prices import *
 
 # %%
 # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
@@ -191,17 +193,6 @@ all_urls = process_and_get_urls(state_to_region_dict)
 #         region_posts.extend(wanted_posts)
 #     posts_dict[(state,region)] = region_posts
 
-# %% tags=[]
-all_urls = test_dict
-
-# %%
-import sys
-sys.setrecursionlimit(100000)
-
-# %%
-
-# %store all_urls
-
 # %%
 # %store
 
@@ -271,23 +262,6 @@ soup_objects = convert_urls_to_soup_objs(all_urls)
 #     else:
 #         print()
 #         print(F"Soup objects for {key} acquired.  Process complete.")
-
-# %%
-# %store soup_objects
-
-# %% tags=[]
-soup_objects[('Alabama', 'bham')]
-
-# %%
-# %store 
-
-# %%
-import itertools
-
-soup_objects_test_dict = dict(itertools.islice(soup_objects.items(), 30))
-
-# %%
-# %store soup_objects_test_dict
 
 # %% [markdown]
 # ## Pre-Processing
@@ -503,6 +477,9 @@ soup_objects_test_dict = dict(itertools.islice(soup_objects.items(), 30))
 concat_df = extract_post_features(soup_objects)
 
 # %%
+# concat_df = extract_post_features(soup_objects_test_dict)
+
+# %%
 # # Add US_region division for eastern us, western us, etc., using census data to classify each region
 
 # census_regions = pd.read_csv('../craigslist_web_scraper/census-regions/us_census_regions.csv')
@@ -670,7 +647,7 @@ print(F"There were {posts_with_mult_prices} posts with price marked null.")
 
 # %%
 # Store posts with null prices to CSV to manually inspect later
-df_null_prices = df_null_prices.drop(columns=['len_of_price_list', 'match'])
+df_null_prices = df_null_prices.drop(columns=['len_of_price_list'])
 df_null_prices.to_csv('./posts_to_investigate/{}_posts_with_null_prices.csv'.format(date_of_html_request), index=False)
 
 # %%
@@ -696,264 +673,267 @@ with pd.option_context('display.max_colwidth', None):
 # into a single price.  Other posts repeated their prices multiple times, so we distill those down to a single price as well.
 
 # %%
-price_col_idx = df_with_prices.columns.get_loc('price')
+# price_col_idx = df_with_prices.columns.get_loc('price')
 
 # %%
-# Says $40 for in person, or $45 for at home, so I took the average.
-san_mateo_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('I mainly tutor, in person, at the Downtown Redwood City, downtown San Mateo')].index
+# # Says $40 for in person, or $45 for at home, so I took the average.
+# san_mateo_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('I mainly tutor, in person, at the Downtown Redwood City, downtown San Mateo')].index
 
-try:
-    df_with_prices.iloc[san_mateo_tutor_idx,price_col_idx] = 42.5
+# try:
+#     df_with_prices.iloc[san_mateo_tutor_idx,price_col_idx] = 42.5
 
-except:
-    print("Issue with san_mateo_tutor and iloc.")
-    pass
-
-# %%
-# Because the ad says $90 in person, $60 for online, and Corona Virus pricing of
-# $40 for online weekdays, I'm using the $40 per hour rate because it seems the
-# most reasonable and is most similar to what I'm competing against.
-kenari_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('kenaritutor.com')==True].index
-
-try:
-    df_with_prices.iloc[kenari_tutor_idx,price_col_idx] = 40
-except:
-    print('Issue with kenari_tutor_idx and iloc.')
-    pass
+# except:
+#     print("Issue with san_mateo_tutor and iloc.")
+#     pass
 
 # %%
-# This ad mentions several prices for different subjects, but explicitly says $30 for math.
-la_honda_idx = df_with_prices[df_with_prices['post_text'].str.contains('909-640-3570')].index
+# # Because the ad says $90 in person, $60 for online, and Corona Virus pricing of
+# # $40 for online weekdays, I'm using the $40 per hour rate because it seems the
+# # most reasonable and is most similar to what I'm competing against.
+# kenari_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('kenaritutor.com')==True].index
 
-try:
-    df_with_prices.iloc[la_honda_idx,price_col_idx] = 30
+# try:
+#     df_with_prices.iloc[kenari_tutor_idx,price_col_idx] = 40
+# except:
+#     print('Issue with kenari_tutor_idx and iloc.')
+#     pass
+
+# %%
+# # This ad mentions several prices for different subjects, but explicitly says $30 for math.
+# la_honda_idx = df_with_prices[df_with_prices['post_text'].str.contains('909-640-3570')].index
+
+# try:
+#     df_with_prices.iloc[la_honda_idx,price_col_idx] = 30
     
-except:
-    print("Issue with la_honda_idx and iloc.")
-    pass
+# except:
+#     print("Issue with la_honda_idx and iloc.")
+#     pass
 
 # %%
-# Says #60 per hour.
-glasses_lady_idx = df_with_prices[df_with_prices['post_text'].str.contains("offering virtual one-on-one Math tutoring via Zoom")==True].index
+# # Says #60 per hour.
+# glasses_lady_idx = df_with_prices[df_with_prices['post_text'].str.contains("offering virtual one-on-one Math tutoring via Zoom")==True].index
 
-try:
-    df_with_prices.iloc[glasses_lady_idx, price_col_idx] = 60
-except:
-    print("Issue with glasses_lady_idx and iloc.")
-    pass  
-
-# %%
-# Says #60 per hour.
-UC_Davis_data_scientist = df_with_prices[df_with_prices['post_text'].str.contains("PhD in Engineering from UC Davis")==True].index
-
-try:
-    df_with_prices.iloc[UC_Davis_data_scientist, price_col_idx] = 60
-except:
-    print("Issue with UC_Davis_data_scientist and iloc.")
-    pass  
+# try:
+#     df_with_prices.iloc[glasses_lady_idx, price_col_idx] = 60
+# except:
+#     print("Issue with glasses_lady_idx and iloc.")
+#     pass  
 
 # %%
-#This guy has weird price structuring, but I used his hourly rate for each time interval, $100 for 80 minutes, $115 for 100 minutes, $130 for 120 minutes, then averaged those hourly rates to estimate what a single hour would cost.
-oakland_exp_tutor_online_idx = df_with_prices[df_with_prices['post_text'].str.contains('I received a full scholarship to University of Cincinnati and held a 3.8 GPA through my master’s program in aerospace')==True].index
+# # Says #60 per hour.
+# UC_Davis_data_scientist = df_with_prices[df_with_prices['post_text'].str.contains("PhD in Engineering from UC Davis")==True].index
 
-oakland_tutor_avg_rate = ((100/80) + (115/100) + (130/120)) * 60 / 3
-
-try:
-    df_with_prices.iloc[oakland_exp_tutor_online_idx, price_col_idx] = oakland_tutor_avg_rate
-
-except:
-    print("Issue with oakland_exp_tutor_online_idx and iloc.")
-    pass
+# try:
+#     df_with_prices.iloc[UC_Davis_data_scientist, price_col_idx] = 60
+# except:
+#     print("Issue with UC_Davis_data_scientist and iloc.")
+#     pass  
 
 # %%
-# The ad repeats the price of $40 over and over, so I'm replacing the price with 
-# a single instance.
-star_star_college_math_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('https://www.youtube.com/channel/UCqhFZRmUqOAAPMQpo58TV7g'
-                   ) == True].index
+# #This guy has weird price structuring, but I used his hourly rate for each time interval, $100 for 80 minutes, $115 for 100 minutes, $130 for 120 minutes, then averaged those hourly rates to estimate what a single hour would cost.
+# oakland_exp_tutor_online_idx = df_with_prices[df_with_prices['post_text'].str.contains('I received a full scholarship to University of Cincinnati and held a 3.8 GPA through my master’s program in aerospace')==True].index
 
-try:
-    df_with_prices.iloc[star_star_college_math_tutor_idx, price_col_idx] = 40
+# oakland_tutor_avg_rate = ((100/80) + (115/100) + (130/120)) * 60 / 3
+
+# try:
+#     df_with_prices.iloc[oakland_exp_tutor_online_idx, price_col_idx] = oakland_tutor_avg_rate
+
+# except:
+#     print("Issue with oakland_exp_tutor_online_idx and iloc.")
+#     pass
+
+# %%
+# # The ad repeats the price of $40 over and over, so I'm replacing the price with 
+# # a single instance.
+# star_star_college_math_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('https://www.youtube.com/channel/UCqhFZRmUqOAAPMQpo58TV7g'
+#                    ) == True].index
+
+# try:
+#     df_with_prices.iloc[star_star_college_math_tutor_idx, price_col_idx] = 40
     
-except:
-    print("Issue with star_star_college_math_tutor_idx and iloc.")
-    pass
+# except:
+#     print("Issue with star_star_college_math_tutor_idx and iloc.")
+#     pass
 
-# %%
-# Says $50/hr    
-trevor_skelly_idx = df_with_prices[df_with_prices['post_text'].str.contains('trevorskelly')==True].index
+# %% jupyter={"source_hidden": true} tags=[]
+# # Says $50/hr    
+# trevor_skelly_idx = df_with_prices[df_with_prices['post_text'].str.contains('trevorskelly')==True].index
 
-try:
-    df_with_prices.iloc[trevor_skelly_idx,price_col_idx] = 50
+# try:
+#     df_with_prices.iloc[trevor_skelly_idx,price_col_idx] = 50
     
-except:
-    print("Issue with trevor_skelly_idx and iloc.")
-    pass
+# except:
+#     print("Issue with trevor_skelly_idx and iloc.")
+#     pass
 
 # %%
-# Charges $50 per hour for sessions under 3 hours
-spss_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('datameer', case=False)==True].index
+# # Charges $50 per hour for sessions under 3 hours
+# spss_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('datameer', case=False)==True].index
 
-try:
-    df_with_prices.iloc[spss_tutor_idx, price_col_idx] = 50
+# try:
+#     df_with_prices.iloc[spss_tutor_idx, price_col_idx] = 50
     
-except:
-    print("Issue with spss_tutor_idx and iloc.")
-    pass
+# except:
+#     print("Issue with spss_tutor_idx and iloc.")
+#     pass
 
 # %%
-# Charges $50 per hour
-tutor_sam_idx = df_with_prices[df_with_prices['post_text'].str.contains('thetutorsam')==True].index
+# # Charges $50 per hour
+# tutor_sam_idx = df_with_prices[df_with_prices['post_text'].str.contains('thetutorsam')==True].index
 
-try:
-    df_with_prices.iloc[tutor_sam_idx, price_col_idx] = 50
+# try:
+#     df_with_prices.iloc[tutor_sam_idx, price_col_idx] = 50
     
-except:
-    print("Issue with tutor_sam_idx and iloc.")
-    pass
+# except:
+#     print("Issue with tutor_sam_idx and iloc.")
+#     pass
 
 # %%
-# Charges $40 per hour
-peter_d_idx = df_with_prices[df_with_prices['post_text'].str.contains('Peter D.')==True].index
+# # Charges $40 per hour
+# peter_d_idx = df_with_prices[df_with_prices['post_text'].str.contains('Peter D.')==True].index
 
-try:
-    df_with_prices.iloc[peter_d_idx, price_col_idx] = 40
-except:
-    print("Issue with peter_d_idx and iloc.")
-    pass    
-
-# %%
-# Charges $45 per hour for individual lessons
-algebra_exclusively_idx = df_with_prices[df_with_prices['post_text'].str.contains('algebra EXCLUSIVELY')==True].index
-
-try:
-    df_with_prices.iloc[algebra_exclusively_idx, price_col_idx] = 45
-except:
-    print("Issue with algebra_exclusively_idx and iloc.")
-    pass    
+# try:
+#     df_with_prices.iloc[peter_d_idx, price_col_idx] = 40
+# except:
+#     print("Issue with peter_d_idx and iloc.")
+#     pass    
 
 # %%
-# Post includes many prices, but states $55/hr for Precalc and $80/hr for Calculus, which are primarily what I help with, so I took the average of those prices
-aerospace_engineer_idx = df_with_prices[df_with_prices['post_text'].str.contains('in the aerospace industry looking', regex=False)==True].index
+# # Charges $45 per hour for individual lessons
+# algebra_exclusively_idx = df_with_prices[df_with_prices['post_text'].str.contains('algebra EXCLUSIVELY')==True].index
 
-try:
-    df_with_prices.iloc[aerospace_engineer_idx, price_col_idx] = (55 + 80)/2
-
-except:
-    print("Issue with aerospace_engineer_idx and iloc.")
-    pass    
-
-# %%
-# This ad mentions $45 for lower division college courses, which are a large segment of the subjects I help with, so I'm using that price to compare myself against.
-ucb_phd_student_and_ta_idx = df_with_prices[df_with_prices['post_text'].str.contains('Former UC-Berkeley economics Ph.D. student and TA')].index
-
-try:
-    df_with_prices.iloc[ucb_phd_student_and_ta_idx, price_col_idx] = 45
-
-except:
-    print("Issue with ucb_phd_student_and_ta_idx and iloc.")
-    pass
+# try:
+#     df_with_prices.iloc[algebra_exclusively_idx, price_col_idx] = 45
+# except:
+#     print("Issue with algebra_exclusively_idx and iloc.")
+#     pass    
 
 # %%
-# The add says $55/hr for K-12, then $65/hr for AP/Honors, as well as Pre-calc, 
-# etc., I'm going to average the two prices.
-park_academy_idx = df_with_prices[df_with_prices['post_text'].str.contains('(949) 490-0872', regex=False)==True].index
+# # Post includes many prices, but states $55/hr for Precalc and $80/hr for Calculus, which are primarily what I help with, so I took the average of those prices
+# aerospace_engineer_idx = df_with_prices[df_with_prices['post_text'].str.contains('in the aerospace industry looking', regex=False)==True].index
 
-try:
-    df_with_prices.iloc[park_academy_idx, price_col_idx] = 60
+# try:
+#     df_with_prices.iloc[aerospace_engineer_idx, price_col_idx] = (55 + 80)/2
 
-except:
-    print("Issue with park_academy_idx and iloc.")
-    pass
+# except:
+#     print("Issue with aerospace_engineer_idx and iloc.")
+#     pass    
 
 # %%
-# Says $25/hr for high school, $30/hr for college, just went with $30/hr
-sharp_mind_idx = df_with_prices[df_with_prices['post_text'].str.contains('(650) 398-9490', regex=False)==True].index
+# # This ad mentions $45 for lower division college courses, which are a large segment of the subjects I help with, so I'm using that price to compare myself against.
+# ucb_phd_student_and_ta_idx = df_with_prices[df_with_prices['post_text'].str.contains('Former UC-Berkeley economics Ph.D. student and TA')].index
 
-try:
-    df_with_prices.iloc[sharp_mind_idx, price_col_idx] = 30
+# try:
+#     df_with_prices.iloc[ucb_phd_student_and_ta_idx, price_col_idx] = 45
+
+# except:
+#     print("Issue with ucb_phd_student_and_ta_idx and iloc.")
+#     pass
+
+# %%
+# # The add says $55/hr for K-12, then $65/hr for AP/Honors, as well as Pre-calc, 
+# # etc., I'm going to average the two prices.
+# park_academy_idx = df_with_prices[df_with_prices['post_text'].str.contains('(949) 490-0872', regex=False)==True].index
+
+# try:
+#     df_with_prices.iloc[park_academy_idx, price_col_idx] = 60
+
+# except:
+#     print("Issue with park_academy_idx and iloc.")
+#     pass
+
+# %%
+# # Says $25/hr for high school, $30/hr for college, just went with $30/hr
+# sharp_mind_idx = df_with_prices[df_with_prices['post_text'].str.contains('(650) 398-9490', regex=False)==True].index
+
+# try:
+#     df_with_prices.iloc[sharp_mind_idx, price_col_idx] = 30
     
-except:
-    print("Issue with sharp_mind_idx and iloc.")
-    pass
+# except:
+#     print("Issue with sharp_mind_idx and iloc.")
+#     pass
 
 # %%
-# Says $50/hr if travelling, $30-35/hr if virtual, so I took the average of 50 and 35
-stock_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('714.425.3828', regex=False)==True].index
+# # Says $50/hr if travelling, $30-35/hr if virtual, so I took the average of 50 and 35
+# stock_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('714.425.3828', regex=False)==True].index
 
-try:
-    df_with_prices.iloc[stock_tutor_idx, price_col_idx] = (35 + 50)/2
+# try:
+#     df_with_prices.iloc[stock_tutor_idx, price_col_idx] = (35 + 50)/2
     
-except:
-    print("Issue with stock_tutor_idx and iloc.")
-    pass
+# except:
+#     print("Issue with stock_tutor_idx and iloc.")
+#     pass
 
 # %%
-# Post says $30/hr for Precalc/Trig and $50/hr for Calculus, so I took the average
-lonzo_tutoring_idx = df_with_prices[df_with_prices['post_text'].str.contains('951-795-5027', regex=False)==True].index
+# # Post says $30/hr for Precalc/Trig and $50/hr for Calculus, so I took the average
+# lonzo_tutoring_idx = df_with_prices[df_with_prices['post_text'].str.contains('951-795-5027', regex=False)==True].index
 
-try:
-    df_with_prices.iloc[lonzo_tutoring_idx, price_col_idx] = 40
+# try:
+#     df_with_prices.iloc[lonzo_tutoring_idx, price_col_idx] = 40
 
-except:
-    print("Issue with lonzo_tutoring_idx and iloc.")
-    pass    
+# except:
+#     print("Issue with lonzo_tutoring_idx and iloc.")
+#     pass    
 
 # %%
-# This ad says $30 for one hour.
-poway_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('(619)735-2579', regex=False)==True].index
+# # This ad says $30 for one hour.
+# poway_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('(619)735-2579', regex=False)==True].index
 
-try:
-    df_with_prices.iloc[poway_tutor_idx, price_col_idx] = 30
+# try:
+#     df_with_prices.iloc[poway_tutor_idx, price_col_idx] = 30
     
-except:
-    print("Issue with poway_tutor_idx and iloc.")
-    pass
+# except:
+#     print("Issue with poway_tutor_idx and iloc.")
+#     pass
 
 # %%
-# $20/hr online, $30/hr in person, split the difference at $25
-austin_sabrina_idx = df_with_prices[df_with_prices['post_text'].str.contains('My girlfriend Sabrina')==True].index
+# # $20/hr online, $30/hr in person, split the difference at $25
+# austin_sabrina_idx = df_with_prices[df_with_prices['post_text'].str.contains('My girlfriend Sabrina')==True].index
 
-try:
-    df_with_prices.iloc[austin_sabrina_idx, price_col_idx] = 25
+# try:
+#     df_with_prices.iloc[austin_sabrina_idx, price_col_idx] = 25
     
-except:
-    print("Issue with austin_sabrina_idx and iloc.")
-    pass    
+# except:
+#     print("Issue with austin_sabrina_idx and iloc.")
+#     pass    
 
 # %%
-# Says $25/hr
-alex_farrell_idx = df_with_prices[df_with_prices['post_text'].str.contains('Alexander Farrell')==True].index
+# # Says $25/hr
+# alex_farrell_idx = df_with_prices[df_with_prices['post_text'].str.contains('Alexander Farrell')==True].index
 
-try:
-    df_with_prices.iloc[alex_farrell_idx, price_col_idx] = 25
-
-except:
-    print("Issue with alex_farrell_idx and iloc.")
-    pass    
+# try:
+#     df_with_prices.iloc[alex_farrell_idx, price_col_idx] = 25
+# # 
+# except:
+#     print("Issue with alex_farrell_idx and iloc.")
+#     pass    
 
 # %%
-# $25/hr if meeting near CSU Sac, $35/hr if they drive to you, $20/hr for online.
-# I chose $30/hr to split the difference between the in person prices.
-best_math_idx = df_with_prices[df_with_prices['post_text'].str.contains('bestmathtutoring.com')==True].index
+# # $25/hr if meeting near CSU Sac, $35/hr if they drive to you, $20/hr for online.
+# # I chose $30/hr to split the difference between the in person prices.
+# best_math_idx = df_with_prices[df_with_prices['post_text'].str.contains('bestmathtutoring.com')==True].index
 
-try:
-    df_with_prices.iloc[best_math_idx, price_col_idx] = 30
+# try:
+#     df_with_prices.iloc[best_math_idx, price_col_idx] = 30
     
-except:
-    print("Issue with best_math_idx and iloc.")
-    pass  
+# except:
+#     print("Issue with best_math_idx and iloc.")
+#     pass  
 
 # %%
-ucla_grad_henry_idx = df_with_prices[df_with_prices['post_text'].str.contains("916 390-7923", regex=False)==True].index
+# ucla_grad_henry_idx = df_with_prices[df_with_prices['post_text'].str.contains("916 390-7923", regex=False)==True].index
 
-try:
-    df_with_prices.iloc[ucla_grad_henry_idx, price_col_idx] = 35
+# try:
+#     df_with_prices.iloc[ucla_grad_henry_idx, price_col_idx] = 35
 
-except:
-    print("Issue with ucla_grad_henry_idx and iloc.")
-    pass    
+# except:
+#     print("Issue with ucla_grad_henry_idx and iloc.")
+#     pass    
 
-# %% [markdown]
+# %%
+df_with_prices= clean_3_plus_prices(df_with_prices)
+
+# %% [markdown] tags=[]
 # #### Checking results - Are there any posts that were marked as needing to be cleaned that we missed?
 
 # %%
@@ -983,81 +963,84 @@ with pd.option_context('display.max_colwidth', None):
 # #### Ads where averaging doesn't make sense
 
 # %%
-# This guy's ad says 35$/half hour, but explicitly says $57 per hour, so averaging doesn't make sense.  
-blake_tutoring_idx = df_with_prices[df_with_prices['post_text'].str.contains('BlakeTutoring.com', case=False)==True].index
+# # This guy's ad says 35$/half hour, but explicitly says $57 per hour, so averaging doesn't make sense.  
+# blake_tutoring_idx = df_with_prices[df_with_prices['post_text'].str.contains('BlakeTutoring.com', case=False)==True].index
 
-df_with_prices.iloc[blake_tutoring_idx, price_col_idx] = 57
-
-# %%
-# This ad says $84/hr but then mentions a $125 for 1.5 hours.  Since these are the only two prices in the post, our code averages them, so we set the correct price to $84
-test_trainer_inc_idx = df_with_prices[df_with_prices['post_text'].str.contains("TestTrainerinc", regex=False)==True].index
-
-try:
-    df_with_prices.iloc[test_trainer_inc_idx, price_col_idx] = 84
-
-except:
-    print("Issue with test_trainer_inc_idx and iloc.")
-    pass 
+# df_with_prices.iloc[blake_tutoring_idx, price_col_idx] = 57
 
 # %%
-# This guy's ad says $60/45mins, but $80 per hour.  Either price comes out to the same hourly rate, so averaging doesn't make sense.
-hiro_kobayashi_idx = df_with_prices[df_with_prices['post_text'].str.contains('415-250-4831', case=False)==True].index
+# # This ad says $84/hr but then mentions a $125 for 1.5 hours.  Since these are the only two prices in the post, our code averages them, so we set the correct price to $84
+# test_trainer_inc_idx = df_with_prices[df_with_prices['post_text'].str.contains("TestTrainerinc", regex=False)==True].index
 
-df_with_prices.iloc[hiro_kobayashi_idx, price_col_idx] = 80
+# try:
+#     df_with_prices.iloc[test_trainer_inc_idx, price_col_idx] = 84
 
-# %%
-# This guy's ad says $40/1hr, $70/2hr, so averaging doesn't make sense
-guy_with_suit_idx = df_with_prices[df_with_prices['post_text'].str.contains('trained mathematician with about 20 years experience')==True].index
-
-df_with_prices.iloc[guy_with_suit_idx, price_col_idx] = 40
-
-# %%
-# This guy's ad says $25/1hr, $40/2hr, so averaging doesn't make sense
-christian_cerritos_college_idx = df_with_prices[df_with_prices['post_text'].str.contains('trained mathematician with about 20 years experience')==True].index
-
-df_with_prices.iloc[christian_cerritos_college_idx, price_col_idx] = 25
+# except:
+#     print("Issue with test_trainer_inc_idx and iloc.")
+#     pass 
 
 # %%
-# This guy's ad says $30/half hr, $50/1hr, so averaging doesn't make sense
-dustin_csu_long_beach_idx = df_with_prices[df_with_prices['post_text'].str.contains('International Society of Automation')==True].index
+# # This guy's ad says $60/45mins, but $80 per hour.  Either price comes out to the same hourly rate, so averaging doesn't make sense.
+# hiro_kobayashi_idx = df_with_prices[df_with_prices['post_text'].str.contains('415-250-4831', case=False)==True].index
 
-df_with_prices.iloc[dustin_csu_long_beach_idx, price_col_idx] = 50
-
-# %%
-# This guy's ad says $65/hr for subject tutoring, $100/hr for standardized tests.  I'm primarily competing against subject tutoring, so I'll use that price
-smarter_than_you_think_idx = df_with_prices[df_with_prices['post_text'].str.contains('guarantee you are smarter than you think')==True].index
-
-df_with_prices.iloc[smarter_than_you_think_idx, price_col_idx] = 65
+# df_with_prices.iloc[hiro_kobayashi_idx, price_col_idx] = 80
 
 # %%
-# This guy's ad says $50/hr or $160/4hr, so it doesn't make sense to average.
-dead_in_ditch_idx = df_with_prices[df_with_prices['post_text'].str.contains('dead in a ditch')==True].index
+# # This guy's ad says $40/1hr, $70/2hr, so averaging doesn't make sense
+# guy_with_suit_idx = df_with_prices[df_with_prices['post_text'].str.contains('trained mathematician with about 20 years experience')==True].index
 
-df_with_prices.iloc[dead_in_ditch_idx, price_col_idx] = 50
-
-# %%
-# This guy's ad says $45/hr +$10 more per student, so it doesn't make sense to average.
-distinguished_teacher_idx = df_with_prices[df_with_prices['post_text'].str.contains('"Distinguished Teacher"')==True].index
-
-df_with_prices.iloc[distinguished_teacher_idx, price_col_idx] = 45
+# df_with_prices.iloc[guy_with_suit_idx, price_col_idx] = 40
 
 # %%
-# This guy's ad says $40/hr +$10 more for each additional person, so it doesn't make sense to average.
-vahab_idx = df_with_prices[df_with_prices['post_text'].str.contains('vababtaghizade@gmail.com')==True].index
+# # This guy's ad says $25/1hr, $40/2hr, so averaging doesn't make sense
+# christian_cerritos_college_idx = df_with_prices[df_with_prices['post_text'].str.contains('trained mathematician with about 20 years experience')==True].index
 
-df_with_prices.iloc[vahab_idx, price_col_idx] = 40
-
-# %%
-# This guy's ad says $30/hr for trial session, then $60/hr afterwards, so it doesn't make sense to average.
-myles_ahead_idx = df_with_prices[df_with_prices['post_text'].str.contains('mylesaheadtutoring')==True].index
-
-df_with_prices.iloc[myles_ahead_idx, price_col_idx] = 60
+# df_with_prices.iloc[christian_cerritos_college_idx, price_col_idx] = 25
 
 # %%
-# This guy's ad says $45/hr, then talks about selling a workbook for $30, so it doesn't make sense to average.
-john_the_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('480-343-2212')==True].index
+# # This guy's ad says $30/half hr, $50/1hr, so averaging doesn't make sense
+# dustin_csu_long_beach_idx = df_with_prices[df_with_prices['post_text'].str.contains('International Society of Automation')==True].index
 
-df_with_prices.iloc[john_the_tutor_idx, price_col_idx] = 45
+# df_with_prices.iloc[dustin_csu_long_beach_idx, price_col_idx] = 50
+
+# %%
+# # This guy's ad says $65/hr for subject tutoring, $100/hr for standardized tests.  I'm primarily competing against subject tutoring, so I'll use that price
+# smarter_than_you_think_idx = df_with_prices[df_with_prices['post_text'].str.contains('guarantee you are smarter than you think')==True].index
+
+# df_with_prices.iloc[smarter_than_you_think_idx, price_col_idx] = 65
+
+# %%
+# # This guy's ad says $50/hr or $160/4hr, so it doesn't make sense to average.
+# dead_in_ditch_idx = df_with_prices[df_with_prices['post_text'].str.contains('dead in a ditch')==True].index
+
+# df_with_prices.iloc[dead_in_ditch_idx, price_col_idx] = 50
+
+# %%
+# # This guy's ad says $45/hr +$10 more per student, so it doesn't make sense to average.
+# distinguished_teacher_idx = df_with_prices[df_with_prices['post_text'].str.contains('"Distinguished Teacher"')==True].index
+
+# df_with_prices.iloc[distinguished_teacher_idx, price_col_idx] = 45
+
+# %%
+# # This guy's ad says $40/hr +$10 more for each additional person, so it doesn't make sense to average.
+# vahab_idx = df_with_prices[df_with_prices['post_text'].str.contains('vababtaghizade@gmail.com')==True].index
+
+# df_with_prices.iloc[vahab_idx, price_col_idx] = 40
+
+# %%
+# # This guy's ad says $30/hr for trial session, then $60/hr afterwards, so it doesn't make sense to average.
+# myles_ahead_idx = df_with_prices[df_with_prices['post_text'].str.contains('mylesaheadtutoring')==True].index
+
+# df_with_prices.iloc[myles_ahead_idx, price_col_idx] = 60
+
+# %%
+# # This guy's ad says $45/hr, then talks about selling a workbook for $30, so it doesn't make sense to average.
+# john_the_tutor_idx = df_with_prices[df_with_prices['post_text'].str.contains('480-343-2212')==True].index
+
+# df_with_prices.iloc[john_the_tutor_idx, price_col_idx] = 45
+
+# %%
+df_with_prices = clean_two_prices(df_with_prices)
 
 # %% [markdown]
 # Conclusion: Averaging doesn't make sense for a good chunk of these posts, but averaging is helpful for others.  I need to come up with a better process here, but will leave that for later...

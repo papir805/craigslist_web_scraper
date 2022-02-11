@@ -653,7 +653,5 @@ def drop_posts_without_prices(input_df, details=True):
     
 #     if drop_without_price==True:
 #         df_no_dups_no_similar_that_have_price = drop_posts_without_prices(df_post_text_dups_and_similar_dropped)
-        
-        
 
 
