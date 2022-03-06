@@ -646,8 +646,16 @@ posts_with_mult_prices = df_null_prices.shape[0]
 print(F"There were {posts_with_mult_prices} posts with price marked null.")
 
 # %%
+from datetime import date
+
+date_of_html_request = date.today().strftime("%Y-%m-%d")
+
+# %%
+df_null_prices.head()
+
+# %%
 # Store posts with null prices to CSV to manually inspect later
-df_null_prices = df_null_prices.drop(columns=['len_of_price_list'])
+#df_null_prices = df_null_prices.drop(columns=['len_of_price_list'])
 df_null_prices.to_csv('./posts_to_investigate/{}_posts_with_null_prices.csv'.format(date_of_html_request), index=False)
 
 # %%
@@ -755,7 +763,7 @@ with pd.option_context('display.max_colwidth', None):
 #     print("Issue with star_star_college_math_tutor_idx and iloc.")
 #     pass
 
-# %% jupyter={"source_hidden": true} tags=[]
+# %% tags=[]
 # # Says $50/hr    
 # trevor_skelly_idx = df_with_prices[df_with_prices['post_text'].str.contains('trevorskelly')==True].index
 
