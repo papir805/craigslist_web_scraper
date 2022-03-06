@@ -194,10 +194,10 @@ all_urls = process_and_get_urls(state_to_region_dict)
 #     posts_dict[(state,region)] = region_posts
 
 # %%
-# %store
+# # %store
 
 # %%
-# %store -r
+# # %store -r
 
 # %%
 # urls_of_posts_dict = get_urls_of_posts(search_page_url_dict)
