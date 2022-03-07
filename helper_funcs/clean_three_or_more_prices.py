@@ -1,4 +1,4 @@
-def clean_3_plus_prices(df):
+def clean_three_or_more_prices(df):
     price_col_idx = df.columns.get_loc('price')
     
     # Says $40 for in person, or $45 for at home, so I took the average.

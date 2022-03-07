@@ -45,7 +45,9 @@ session.mount('http://', adapter)
 session.mount('https://', adapter)
 
 # %% [markdown]
-# # Extracting Craigslist Data
+# # *Extract* Craigslist Data
+
+# %% [markdown]
 # ## Get all state/region names
 
 # %%
@@ -70,28 +72,21 @@ state_to_region_dict = get_state_to_region_dict(states_tags, regions_tags)
 # %%
 all_urls = process_and_get_urls(state_to_region_dict)
 
-# %%
-# # Calculate how many posts in total are to be scraped for countdown timer
-
-# num_regions = len(all_urls)
-
-# num_posts = 0
-# for state_and_region in all_urls:
-#     num_posts += len(all_urls[state_and_region])
-
 # %% [markdown] tags=[]
 # ## Getting soup object response for each individual post in a state/region combo
 
-# %%
+# %% tags=[] jupyter={"outputs_hidden": true}
 soup_objects = convert_urls_to_soup_objs(all_urls)
 
 # %% [markdown]
-# ## Pre-Processing
-#
-# ### Extracting post information from each soup_object
+# ## Scraping post information from each soup_object
 
 # %%
-concat_df = extract_post_features(soup_objects)
+df_all_posts = extract_post_features(soup_objects)
+
+# %% [markdown]
+# # *Transform* Craigslist data
+# ## Pre-Processing
 
 # %% [markdown]
 # ### Adding more detailed location information from US Census data
@@ -100,28 +95,27 @@ concat_df = extract_post_features(soup_objects)
 # # Add US_region division for eastern us, western us, etc., using census data to classify each region
 
 # census_regions = pd.read_csv('./census-regions/us_census_regions.csv')
-# concat_df_w_regions = concat_df.merge(right=census_regions[['State','Region','Division']], how='left', left_on='state', right_on='State')
+# df_all_posts_w_regions = df_all_posts.merge(right=census_regions[['State','Region','Division']], how='left', left_on='state', right_on='State')
 
-# concat_df_w_regions.drop(labels='State', axis=1, inplace=True)
-# concat_df_w_regions.rename(columns={'Region':'US_region', "Division":"US_division"}, inplace=True)
+# df_all_posts_w_regions.drop(labels='State', axis=1, inplace=True)
+# df_all_posts_w_regions.rename(columns={'Region':'US_region', "Division":"US_division"}, inplace=True)
 
-# concat_df_w_regions.head()
+# df_all_posts_w_regions.head()
 
 # %%
-# concat_df_w_regions[concat_df_w_regions['US_region'].isna()==True]
+# df_all_posts_w_regions[df_all_posts_w_regions['US_region'].isna()==True]
 
 # %% [markdown]
-# ### Dropping Duplicate posts
-
-# %%
-# Count duplicates.
-concat_df['post_text'].duplicated().value_counts()
-
-# %%
-df_exact_txt_dropped = drop_exact_duplicates(concat_df)
+# ### Dropping posts
 
 # %% [markdown]
-# ### Dropping posts that are above a certain similarity threshold.  
+# #### Dropping Duplicate posts
+
+# %%
+df_exact_txt_dropped = drop_exact_duplicates(df_all_posts)
+
+# %% [markdown] tags=[]
+# #### Dropping posts that are above a certain similarity threshold.  
 #
 # Many posts on Craigslist are from the same person, who changes the text of the post slightly to avoid being flagged and removed.  If a post has a similarity_ratio of 1, it's identical to another post in the df.  All posts with a similarity_ratio >= similarity threshold will be dropped.  In theory, this should leave us with a df that has no more duplicates of any kind and each row represents a unique post.
 
@@ -129,15 +123,18 @@ df_exact_txt_dropped = drop_exact_duplicates(concat_df)
 df_similar_txt_dropped = drop_posts_with_similar_text(df_exact_txt_dropped, similarity_threshold=0.63)
 
 # %% [markdown]
-# ### Dropping posts that contained no prices, which aren't helpful for our analysis
+# #### Dropping posts that contained no prices, which aren't helpful for our analysis
 
 # %%
 df_with_prices = drop_posts_without_prices(df_similar_txt_dropped)
 
+# %% [markdown]
+# ### Pre-Processing complete - Summary:
+
 # %%
 unique_posts_count = len(df_similar_txt_dropped)
 post_with_prices_count = len(df_with_prices)
-num_posts = len(concat_df)
+num_posts = len(df_all_posts)
 
 percent_unique = unique_posts_count / num_posts * 100
 percent_with_prices = post_with_prices_count / num_posts * 100
@@ -147,34 +144,8 @@ print(F"Out of those, there were {post_with_prices_count} posts that had prices 
 
 print(F"Only {percent_with_prices:.2f}% of the posts that we scraped remain.")
 
-# %% [markdown]
-# ### Extracting complete.
-
 # %% [markdown] tags=[]
-# # *Transforming* Craigslist data: Post-processing
-
-# %% [markdown] tags=[]
-# ## Are there any posts that might need manual cleaning?  This would include:
-# * Posts that had 3 or more prices and `price` was marked as null
-# * Posts where the price wasn't able to convert from `str` -> `int` and `price` was marked as null during pre-processing
-#
-# There are the entries that were marked as `Null`.  Let's investigate them manually:
-
-# %%
-df_null_prices = df_with_prices[df_with_prices['price'].isnull()==True]
-#df_null_prices[['price', 'price_list']]
-
-# %%
-posts_with_mult_prices = df_null_prices.shape[0]
-print(F"There were {posts_with_mult_prices} posts with price marked null.")
-
-# %%
-# Store posts with null prices to CSV to manually inspect later
-
-date_of_html_request = str(dt.date.today())
-
-#df_null_prices = df_null_prices.drop(columns=['len_of_price_list'])
-df_null_prices.to_csv('./posts_to_investigate/{}_posts_with_null_prices.csv'.format(date_of_html_request), index=False)
+# ## Post-processing
 
 # %%
 # Inspect links manually, one by one, to decide what to do about price information
@@ -184,10 +155,13 @@ with pd.option_context('display.max_colwidth', None):
   display(df_with_prices.iloc[x]['link'])
   display(df_with_prices.iloc[x]['price'])
 
+# %% [markdown] tags=[]
+# ### Cleaning posts that have a null `price'.  
+
 # %% [markdown]
-# ### Cleaning posts with three or more prices manually - distilling down to one price
+# #### Cleaning posts with three or more prices - distilling down to one price
 #
-# We distill posts that had more complicated text that involved three or more prices, such as :
+# When a post has three or more prices, our script marked the `price` as null to be dealt with later.  Here, I distill posts that had more complicated text that involved three or more prices into a single price, such as :
 #
 # * $40$/hr, $50$/1.5hr, $60$/2hr
 #   * Complicated pricing schedule
@@ -196,13 +170,13 @@ with pd.option_context('display.max_colwidth', None):
 # * $30$/hr Science, $40$/hr math, come and try a first session for the reduced price of $20$.
 #   * Special offers
 #
-# into a single price.  Other posts repeated their prices multiple times, so we distill those down to a single price as well.
+# Other posts repeated their prices multiple times, so we distill those down to a single price as well.
 
 # %%
-df_with_prices= clean_3_plus_prices(df_with_prices)
+df_with_prices = clean_three_or_more_prices(df_with_prices)
 
 # %% [markdown] tags=[]
-# #### Checking results - Are there any posts that were marked as needing to be cleaned that we missed?
+# #### Checking results - Are there any posts with a `price` that was marked null that we missed?
 
 # %%
 num_still_null = len(df_with_prices[df_with_prices['price'].isnull()==True])
@@ -210,10 +184,32 @@ num_still_null = len(df_with_prices[df_with_prices['price'].isnull()==True])
 if num_still_null==0:
     print("There are no posts with null prices still needing cleaning.")
 else:
-    print(F"There are {num_still_null} posts that need cleaning.")
+    print(F"There are {num_still_null} posts with a null price that need cleaning.")
+
+# %% [markdown] tags=[]
+# #### Storing rows with null prices as CSV for inspection later
+# There are the entries that have a price still marked as `Null`.  We'll store them as a csv file to inspect later:
+
+# %%
+df_null_prices = df_with_prices[df_with_prices['price'].isnull()==True]
+#df_null_prices[['price', 'price_list']]
+
+posts_with_mult_prices = df_null_prices.shape[0]
+print(F"There were {posts_with_mult_prices} posts with price marked null.")
+
+# %%
+# Store posts with null prices to CSV to manually inspect later
+
+date_of_html_request = str(dt.date.today())
+
+#df_null_prices = df_null_prices.drop(columns=['len_of_price_list'])
+df_null_prices.to_csv('./csv_files/posts_to_investigate/{}_posts_with_null_prices.csv'.format(date_of_html_request), index=False)
+
+# %% [markdown] tags=[] jp-MarkdownHeadingCollapsed=true
+# ##### This section if for if we want to inspect these objects manually right now.
 
 # %% [markdown]
-# ### Checking Posts that have two prices listed to see if averaging them is reasonable
+# ### Checking posts that have two prices listed.  Is averaging them reasonable?
 
 # %%
 df_with_prices[df_with_prices['len_of_price_list']==2][['price','price_list']]
@@ -236,12 +232,15 @@ with pd.option_context('display.max_colwidth', None):
 df_with_prices = clean_two_prices(df_with_prices)
 
 # %% [markdown]
-# ## Investigating posts with extreme prices.  Are there any price outliers that we need to clean?
+# ### Investigating posts with extreme prices.  Are there any price outliers that we need to clean?
 #
 # Prices >= 100 or <= 20 are what I would consider to be extreme prices.  Let's investigate them.
 
 # %%
 df_with_prices[(df_with_prices['price']>=100) | (df_with_prices['price']<=20)][['price', 'post_text', 'price_list']] 
+
+# %% [markdown] jp-MarkdownHeadingCollapsed=true tags=[]
+# #### This section if for if we want to inspect these objects manually right now.
 
 # %%
 # Manually inspect these posts one by one
@@ -253,7 +252,7 @@ with pd.option_context('display.max_colwidth', None):
   display(df_with_prices.iloc[x]['price'])
 
 # %% [markdown] tags=[]
-# ### Dropping posts with extreme prices that aren't relevant
+# #### Dropping posts with extreme prices that aren't relevant
 
 # %%
 # This ad is for poker tutoring/coaching, not really what I'm competing against, so we drop it.  He also mentions he tutors math in this post, but he has a separate post, that we've captured, which has his math tutoring pricing information.
@@ -263,7 +262,7 @@ df_with_prices.drop(labels=australia_daniel_idx, inplace=True)
 df_with_prices = df_with_prices.reset_index(drop=True)
 
 # %% [markdown]
-# ### Correcting pricing information for posts with extreme prices
+# #### Correcting pricing information for posts with extreme prices
 
 # %%
 # This ad says $50/hr but then mentions a prepay plan for $160 for 4 hours.  Since these are the only two prices in the post, our code averages them, so we set the correct price to $50
@@ -288,12 +287,12 @@ except:
     pass 
 
 # %% [markdown]
-# ### Transforming Complete
+# ## Transforming Complete
 
 # %% [markdown] tags=[]
-# # *Load* - Saving results
+# # *Load* Craigslist data - Saving results
 #
-# ### Store results locally as CSV files
+# ## Store results locally as CSV files
 
 # %%
 date_of_html_request = str(dt.date.today())
@@ -305,16 +304,16 @@ df_for_sql = df_with_prices.drop(labels=['link', 'price_list', 'len_of_price_lis
 df_for_sql['post_text'] = df_for_sql['post_text'].str.replace('\n', '\\n')
 
 # Store cleaned data as CSV file in preparation for importing to SQL database
-df_for_sql.to_csv("./csv_files/{}_all_regions_with_prices.csv".format(date_of_html_request), index=False, sep=';')
+df_for_sql.to_csv("./csv_files/posts_with_prices/{}_all_regions_with_prices.csv".format(date_of_html_request), index=False, sep=';')
 
 # Store original data, before we applied any cleaning to it, in case it's needed for something later on.
-concat_df.to_csv("./csv_files/{}_all_regions_posts.csv".format(date_of_html_request), index=False)
+df_all_posts.to_csv("./csv_files/full_posts/{}_all_regions_posts.csv".format(date_of_html_request), index=False)
 
 # %%
-df_similar_txt_dropped.to_csv('./csv_files/{}_all_regions_no_dups.csv'.format(date_of_html_request), index=False, sep=';')
+df_similar_txt_dropped.to_csv('./csv_files/unique_posts/{}_all_regions_no_dups.csv'.format(date_of_html_request), index=False, sep=';')
 
 # %% [markdown]
-# ### Importing into PostgreSQL database
+# ## Importing into PostgreSQL database
 
 # %%
 # Establish connection to PSQL database
@@ -356,6 +355,6 @@ with open('./csv_files/' + str(date_of_html_request) + '_all_regions_with_prices
 conn.commit()
 
 # %% [markdown]
-# ### Done!!!
+# # Done!!!
 
 # %%
