@@ -31,6 +31,7 @@ If you're interested in seeing just the script and Python code that I wrote, [cl
   - [ ] UPDATE: Some tutors have duplicate posts in other regions of the country, but change prices.  I need to discover some way of keeping these duplicates to better reflect changes in price among regional markets.
 - [ ] Improve extraction process for pricing information
   - [ ] When two prices are given, I currently average them, but I'd like to incorporate a better system
+      - Idea: Consider only averaging when a range of prices is given (ie $30-40 per hour)
   - [ ] When three or more prices are given, I have to manually inspect each post and figure out how to distill to down a single price
   - [ ] When a post has an online price schedule vs. an in-person price schedule, I'd like to be able to keep track of the pricing difference
 - [X] Extract from top 10 regions in US **(completed 1/1/22)**
