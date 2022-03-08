@@ -6,3 +6,4 @@ test/
 Versionclea
 .ipynb_checkpoints
 helper_funcs/sandbox.ipynb
+__pycache__
