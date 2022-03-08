@@ -99,7 +99,7 @@ def drop_posts_with_similar_text(input_df: pd.DataFrame, similarity_threshold: f
 
     # For rows that are duplicate postings, we overwrite the value of match column to contain the indices of all other rows that contain duplicated text
     match_col_idx = input_df.columns.get_loc('match')
-    input_df.iloc[df_row_idx, match_col_idx] = dup_row_idx
+    input_df.iloc[df_row_idx, match_col_idx] = np.array(dup_row_idx, dtype='object')
     #input_df['match'] = input_df['match'].apply(lambda x: [x])
 
     #input_df['match']
