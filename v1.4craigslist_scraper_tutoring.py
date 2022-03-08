@@ -15,34 +15,29 @@
 # ---
 
 # %%
-from requests import get
-import requests
-from requests.packages.urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-import random
-from bs4 import BeautifulSoup
-import re
+# from requests import get
+# import requests
+# from requests.packages.urllib3.util.retry import Retry
+# from requests.adapters import HTTPAdapter
+# import random
+# from bs4 import BeautifulSoup
+# import re
+# import numpy as np
+# import csv 
+# import time
+# from sklearn.feature_extraction.text import TfidfVectorizer
+
+# %%
 import pandas as pd
-import numpy as np
 import datetime as dt
-import csv 
 import psycopg2
-import time
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 from helper_funcs.urls_to_soup_objects import *
 from helper_funcs.clean_three_or_more_prices import *
 from helper_funcs.clean_two_prices import *
 from helper_funcs.soup_objects_to_df import *
 from helper_funcs.dropping_funcs import *
-
-# %%
-# Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
-session = requests.Session()
-retry = Retry(connect=5, backoff_factor=0.5)
-adapter = HTTPAdapter(max_retries=retry)
-session.mount('http://', adapter)
-session.mount('https://', adapter)
+from helper_funcs.update_prices import *
 
 # %% [markdown]
 # # *Extract* Craigslist Data
@@ -51,16 +46,7 @@ session.mount('https://', adapter)
 # ## Get all state/region names
 
 # %%
-# Parse URL that contains all regions of Craigslist
-all_sites_response = session.get('https://craigslist.org/about/sites')
-all_sites_soup = BeautifulSoup(all_sites_response.text, 'html.parser')
-
-# Extract part of webpage corresponding to regions in the US
-us_sites = all_sites_soup.body.section.div.next_sibling.next_sibling.next_sibling.next_sibling.next_sibling.next_sibling
-
-# Extract HTML tags corresponding to the state name and region
-states_tags = us_sites.find_all('h4')
-regions_tags = us_sites.find_all('ul')
+states_tags, regions_tags = get_state_and_region_tags()
 
 # %%
 # Create dictionary which maps a state_name (key) to a list of regions in that state (values)
@@ -75,7 +61,7 @@ all_urls = process_and_get_urls(state_to_region_dict)
 # %% [markdown] tags=[]
 # ## Getting soup object response for each individual post in a state/region combo
 
-# %% tags=[] jupyter={"outputs_hidden": true}
+# %% tags=[]
 soup_objects = convert_urls_to_soup_objs(all_urls)
 
 # %% [markdown]
@@ -156,7 +142,7 @@ with pd.option_context('display.max_colwidth', None):
   display(df_with_prices.iloc[x]['price'])
 
 # %% [markdown] tags=[]
-# ### Cleaning posts that have a null `price'.  
+# ### Cleaning posts that have a null `price`.  
 
 # %% [markdown]
 # #### Cleaning posts with three or more prices - distilling down to one price
@@ -187,6 +173,18 @@ else:
     print(F"There are {num_still_null} posts with a null price that need cleaning.")
 
 # %% [markdown] tags=[]
+# ##### This section if for if we want to inspect these objects manually right now.
+
+# %%
+# Manually inspect these posts one by one
+with pd.option_context('display.max_colwidth', None):
+  x=40
+  #display(df_with_prices.iloc[x]['post_text'])
+  display(df_with_prices.iloc[x]['link'])
+  display(df_with_prices.iloc[x]['post_text'])
+  display(df_with_prices.iloc[x]['price'])
+
+# %% [markdown] tags=[]
 # #### Storing rows with null prices as CSV for inspection later
 # There are the entries that have a price still marked as `Null`.  We'll store them as a csv file to inspect later:
 
@@ -204,9 +202,6 @@ date_of_html_request = str(dt.date.today())
 
 #df_null_prices = df_null_prices.drop(columns=['len_of_price_list'])
 df_null_prices.to_csv('./csv_files/posts_to_investigate/{}_posts_with_null_prices.csv'.format(date_of_html_request), index=False)
-
-# %% [markdown] tags=[] jp-MarkdownHeadingCollapsed=true
-# ##### This section if for if we want to inspect these objects manually right now.
 
 # %% [markdown]
 # ### Checking posts that have two prices listed.  Is averaging them reasonable?
@@ -232,14 +227,14 @@ with pd.option_context('display.max_colwidth', None):
 df_with_prices = clean_two_prices(df_with_prices)
 
 # %% [markdown]
-# ### Investigating posts with extreme prices.  Are there any price outliers that we need to clean?
+# ### Investigating posts with unusual prices.  Are there any price outliers that we need to clean?
 #
-# Prices >= 100 or <= 20 are what I would consider to be extreme prices.  Let's investigate them.
+# Prices >= 100 or <= 20 are what I would consider to be unusual prices.  Let's investigate them.
 
 # %%
 df_with_prices[(df_with_prices['price']>=100) | (df_with_prices['price']<=20)][['price', 'post_text', 'price_list']] 
 
-# %% [markdown] jp-MarkdownHeadingCollapsed=true tags=[]
+# %% [markdown] tags=[]
 # #### This section if for if we want to inspect these objects manually right now.
 
 # %%
@@ -251,8 +246,14 @@ with pd.option_context('display.max_colwidth', None):
   display(df_with_prices.iloc[x]['post_text'])
   display(df_with_prices.iloc[x]['price'])
 
+# %% [markdown]
+# #### Correcting pricing information for posts with unusual prices
+
+# %%
+df_with_prices = update_prices(df_with_prices)
+
 # %% [markdown] tags=[]
-# #### Dropping posts with extreme prices that aren't relevant
+# ### Dropping posts with that aren't relevant
 
 # %%
 # This ad is for poker tutoring/coaching, not really what I'm competing against, so we drop it.  He also mentions he tutors math in this post, but he has a separate post, that we've captured, which has his math tutoring pricing information.
@@ -262,37 +263,12 @@ df_with_prices.drop(labels=australia_daniel_idx, inplace=True)
 df_with_prices = df_with_prices.reset_index(drop=True)
 
 # %% [markdown]
-# #### Correcting pricing information for posts with extreme prices
-
-# %%
-# This ad says $50/hr but then mentions a prepay plan for $160 for 4 hours.  Since these are the only two prices in the post, our code averages them, so we set the correct price to $50
-google_maps_idx = df_with_prices[df_with_prices['post_text'].str.contains("willing to travel if Google Maps", regex=False)==True].index
-
-try:
-    df_with_prices.iloc[google_maps_idx, price_col_idx] = 50
-
-except:
-    print("Issue with google_maps_idx and iloc.")
-    pass 
-
-# %%
-# This ad says $45/hr for high school or college, but then mentions a $35 for middle school.  Since these are the only two prices in the post, our code averages them, so we set the correct price to $45, since I primarily tutor high school or college students.
-rancho_penasquitos_idx = df_with_prices[df_with_prices['post_text'].str.contains("Rancho Penasquitos (Park Village Neighborhood)", regex=False)==True].index
-
-try:
-    df_with_prices.iloc[rancho_penasquitos_idx, price_col_idx] = 45
-
-except:
-    print("Issue with rancho_penasquitos_idx and iloc.")
-    pass 
-
-# %% [markdown]
 # ## Transforming Complete
 
 # %% [markdown] tags=[]
-# # *Load* Craigslist data - Saving results
+# # *Load* Craigslist data
 #
-# ## Store results locally as CSV files
+# ## Saving results - Store results locally as CSV files
 
 # %%
 date_of_html_request = str(dt.date.today())
@@ -347,7 +323,7 @@ cur = conn.cursor()
 # Copy data from our CSV file into database.  
 ### Note, we can use the ; separator freely because we replaced all instances of semicolons in post_text to commas during the preprocessing stage, ensuring that psycopg2 won't misinterpret a semicolon in the body of a post as a separator.
 ### Also, we must specify null="" because Python represents null values as an empty string when writing to a CSV file and psycopg2 needs to know how null values are represented in the CSV file in order to properly insert null values into the database
-with open('./csv_files/' + str(date_of_html_request) + '_all_regions_with_prices.csv', 'r') as file:
+with open('./csv_files/posts_with_prices/' + str(date_of_html_request) + '_all_regions_with_prices.csv', 'r') as file:
     next(file) # Skip the header row
     cur.copy_from(file, 'cl_tutoring', sep=';', null="", columns=('date_posted', 'price', 'city', 'subregion', 'region', 'state', 'post_text', 'date_scraped'))
     

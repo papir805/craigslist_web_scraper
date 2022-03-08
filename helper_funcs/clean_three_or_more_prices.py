@@ -9,7 +9,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with san_mateo_tutor and iloc.")
-        pass
+        
     
     # Because the ad says $90 in person, $60 for online, and Corona Virus pricing of
     # $40 for online weekdays, I'm using the $40 per hour rate because it seems the
@@ -20,7 +20,7 @@ def clean_three_or_more_prices(df):
         df.iloc[kenari_tutor_idx,price_col_idx] = 40
     except:
         print('Issue with kenari_tutor_idx and iloc.')
-        pass
+        
 
     # This ad mentions several prices for different subjects, but explicitly says $30 for math.
     la_honda_idx = df[df['post_text'].str.contains('909-640-3570')].index
@@ -30,7 +30,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with la_honda_idx and iloc.")
-        pass
+        
     
         # Says $60 per hour.
     glasses_lady_idx = df[df['post_text'].str.contains("offering virtual one-on-one Math tutoring via Zoom")==True].index
@@ -39,7 +39,7 @@ def clean_three_or_more_prices(df):
         df.iloc[glasses_lady_idx, price_col_idx] = 60
     except:
         print("Issue with glasses_lady_idx and iloc.")
-        pass  
+          
 
     # Says #60 per hour.
     UC_Davis_data_scientist = df[df['post_text'].str.contains("PhD in Engineering from UC Davis")==True].index
@@ -48,7 +48,7 @@ def clean_three_or_more_prices(df):
         df.iloc[UC_Davis_data_scientist, price_col_idx] = 60
     except:
         print("Issue with UC_Davis_data_scientist and iloc.")
-        pass  
+          
     
         #This guy has weird price structuring, but I used his hourly rate for each time interval, $100 for 80 minutes, $115 for 100 minutes, $130 for 120 minutes, then averaged those hourly rates to estimate what a single hour would cost.
     oakland_exp_tutor_online_idx = df[df['post_text'].str.contains('I received a full scholarship to University of Cincinnati and held a 3.8 GPA through my master’s program in aerospace')==True].index
@@ -60,7 +60,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with oakland_exp_tutor_online_idx and iloc.")
-        pass
+        
 
         # The ad repeats the price of $40 over and over, so I'm replacing the price with 
     # a single instance.
@@ -72,7 +72,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with star_star_college_math_tutor_idx and iloc.")
-        pass
+        
     
     
     # Says $50/hr    
@@ -83,7 +83,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with trevor_skelly_idx and iloc.")
-        pass
+        
     
     
         # Charges $50 per hour for sessions under 3 hours
@@ -94,7 +94,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with spss_tutor_idx and iloc.")
-        pass
+        
     
     
         # Charges $50 per hour
@@ -105,7 +105,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with tutor_sam_idx and iloc.")
-        pass
+        
     
     # Charges $40 per hour
     peter_d_idx = df[df['post_text'].str.contains('Peter D.')==True].index
@@ -114,7 +114,7 @@ def clean_three_or_more_prices(df):
         df.iloc[peter_d_idx, price_col_idx] = 40
     except:
         print("Issue with peter_d_idx and iloc.")
-        pass    
+            
     
     
         # Charges $45 per hour for individual lessons
@@ -124,7 +124,7 @@ def clean_three_or_more_prices(df):
         df.iloc[algebra_exclusively_idx, price_col_idx] = 45
     except:
         print("Issue with algebra_exclusively_idx and iloc.")
-        pass    
+            
     
         # Post includes many prices, but states $55/hr for Precalc and $80/hr for Calculus, which are primarily what I help with, so I took the average of those prices
     aerospace_engineer_idx = df[df['post_text'].str.contains('in the aerospace industry looking', regex=False)==True].index
@@ -134,7 +134,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with aerospace_engineer_idx and iloc.")
-        pass    
+            
     
     
         # This ad mentions $45 for lower division college courses, which are a large segment of the subjects I help with, so I'm using that price to compare myself against.
@@ -145,7 +145,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with ucb_phd_student_and_ta_idx and iloc.")
-    pass
+    
 
     # The add says $55/hr for K-12, then $65/hr for AP/Honors, as well as Pre-calc, 
     # etc., I'm going to average the two prices.
@@ -156,7 +156,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with park_academy_idx and iloc.")
-        pass
+        
     
         # Says $25/hr for high school, $30/hr for college, just went with $30/hr
     sharp_mind_idx = df[df['post_text'].str.contains('(650) 398-9490', regex=False)==True].index
@@ -166,7 +166,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with sharp_mind_idx and iloc.")
-        pass
+        
     
         # Says $50/hr if travelling, $30-35/hr if virtual, so I took the average of 50 and 35
     stock_tutor_idx = df[df['post_text'].str.contains('714.425.3828', regex=False)==True].index
@@ -176,7 +176,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with stock_tutor_idx and iloc.")
-        pass
+        
     
         # Post says $30/hr for Precalc/Trig and $50/hr for Calculus, so I took the average
     lonzo_tutoring_idx = df[df['post_text'].str.contains('951-795-5027', regex=False)==True].index
@@ -186,7 +186,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with lonzo_tutoring_idx and iloc.")
-        pass    
+            
     
     
         # This ad says $30 for one hour.
@@ -197,7 +197,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with poway_tutor_idx and iloc.")
-        pass
+        
     
     
         # $20/hr online, $30/hr in person, split the difference at $25
@@ -208,7 +208,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with austin_sabrina_idx and iloc.")
-        pass    
+            
     
 
         # Says $25/hr
@@ -219,7 +219,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with alex_farrell_idx and iloc.")
-        pass    
+            
     
 
         # $25/hr if meeting near CSU Sac, $35/hr if they drive to you, $20/hr for online.
@@ -231,7 +231,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with best_math_idx and iloc.")
-        pass  
+          
     
     
     ucla_grad_henry_idx = df[df['post_text'].str.contains("916 390-7923", regex=False)==True].index
@@ -241,7 +241,7 @@ def clean_three_or_more_prices(df):
 
     except:
         print("Issue with ucla_grad_henry_idx and iloc.")
-        pass    
+            
     
     
     return df

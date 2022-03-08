@@ -1,3 +1,30 @@
+def get_state_and_region_tags():
+    import requests
+    from requests.packages.urllib3.util.retry import Retry
+    from requests.adapters import HTTPAdapter
+    from bs4 import BeautifulSoup
+    
+    # Create a Session and Retry object to manage the quota Craigslist imposes on HTTP get requests within a certain time period 
+    session = requests.Session()
+    retry = Retry(connect=5, backoff_factor=0.5)
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    
+    # Parse URL that contains all regions of Craigslist
+    all_sites_response = session.get('https://craigslist.org/about/sites')
+    all_sites_soup = BeautifulSoup(all_sites_response.text, 'html.parser')
+
+    # Extract part of webpage corresponding to regions in the US
+    us_sites = all_sites_soup.body.section.div.next_sibling.next_sibling.next_sibling.next_sibling.next_sibling.next_sibling
+
+    # Extract HTML tags corresponding to the state name and region
+    states_tags = us_sites.find_all('h4')
+    regions_tags = us_sites.find_all('ul')
+    
+    return states_tags, regions_tags
+    
+
 def get_state_to_region_dict(state_tags, region_tags):
     """
     Input: 

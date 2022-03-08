@@ -1,4 +1,6 @@
-def clean_two_prices(df):
+import pandas as pd
+
+def clean_two_prices(df: pd.DataFrame) -> pd.DataFrame:
     
     price_col_idx = df.columns.get_loc('price')
     
@@ -14,8 +16,7 @@ def clean_two_prices(df):
         df.iloc[test_trainer_inc_idx, price_col_idx] = 84
 
     except:
-        print("Issue with test_trainer_inc_idx and iloc.")
-        pass 
+        print("Issue with test_trainer_inc_idx and iloc.") 
     
         # This guy's ad says $60/45mins, but $80 per hour.  Either price comes out to the same hourly rate, so averaging doesn't make sense.
     hiro_kobayashi_idx = df[df['post_text'].str.contains('415-250-4831', case=False)==True].index
