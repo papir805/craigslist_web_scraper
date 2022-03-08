@@ -1,1 +1,8 @@
 census-regions/
+old/
+posts_to_investigate/
+test/
+.DS_Store
+Versionclea
+.ipynb_checkpoints/
+helper_funcs/sandbox.ipynb
