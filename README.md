@@ -1,6 +1,6 @@
 # CL_tutoring_scraper - ETL Web Scraper
 ## Goal: To build a dataset of tutoring prices that can be used to understand my competition as a math tutor
-As a math tutor, with a majority of my business coming from word-of-mouth recommendations or Craigslist, I wanted to understand my competition.  I built this Craigslist web scraper, using Python, to grab prices of tutors from the services section, then stored the information in a PostgreSQL database, to be used later in exploratory data analysis (EDA).  Because I tutor math in addition to teaching, I'm curious to know how my prices compare to other tutors in my neighboring areas, as well as in other parts of the country.
+As a math tutor, a majority of my business comes from word-of-mouth recommendations or Craigslist (CL) and I wanted to understand my competition on CL better.  I built this web scraper, using Python, to grab prices of tutors from the services section, then stored the information in a PostgreSQL database, to be used later in exploratory data analysis (EDA).  Because I tutor math in addition to teaching, I'm curious to know how my prices compare to other tutors in my neighboring areas, as well as in other parts of the country.
 
 Important Python libraries used: `Requests`, `BeautifulSoup`, `Pandas`, `NumPy`, `Psycopg2`, and `Sklearn`, among others.
 
