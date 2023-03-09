@@ -36,7 +36,7 @@ If you're interested in seeing just the script and Python code that I wrote, [cl
   - [ ] When a post has an online price schedule vs. an in-person price schedule, I'd like to be able to keep track of the pricing difference
 - [X] Extract from top 10 regions in US **(completed 1/1/22)**
 - [X] Extract from *all* regions on https://www.craigslist.org/about/sites **(completed 1/26/22)**
-  - [X] Keep track of which state a given post was from completed **(completed 1/26/22)**
+  - [X] Keep track of which state a given post was from **(completed 1/26/22)**
   - [ ] Keep track of West, Central, or East coast
 - [ ] Scrape price from post title
 - [ ] Test limits of how quickly I can make HTML requests w/o a ban
