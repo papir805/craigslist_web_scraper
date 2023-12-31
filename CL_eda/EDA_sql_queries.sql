@@ -167,3 +167,4 @@ WHERE date_scraped = '2022-02-03'
   AND region = 'sfbayarea'
 GROUP BY subregion
 ORDER BY 3 DESC;
+
