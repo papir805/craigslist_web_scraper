@@ -1,6 +1,7 @@
 # CL_tutoring_scraper - ETL Web Scraper
-## Goal: To build a dataset of tutoring prices that can be used to understand my competition as a math tutor
-As a math tutor, a majority of my business comes from word-of-mouth recommendations or Craigslist (CL) and I wanted to understand my competition on CL better.  I built this web scraper, using Python, to grab prices of tutors from the services section, then stored the information in a PostgreSQL database, to be used later in exploratory data analysis (EDA).  Because I tutor math in addition to teaching, I'm curious to know how my prices compare to other tutors in my neighboring areas, as well as in other parts of the country.
+## Goal: To curate a dataset of math tutoring prices that can be used to understand the local and national competition.
+As someone who runs a tutoring business, the majority of my business comes from Craigslist (CL), and I wanted to understand my competition better.  I was curious to know how my prices compare to those of other tutors in neighboring areas as well as in other parts of the country. Using Python, I built this web scraper to scrape the prices of tutors from posts in the services section of CL, then store the information in a PostgreSQL database to be used later in analysis.
+>>>>>>> updated readme
 
 Important Python libraries used: `Requests`, `BeautifulSoup`, `Pandas`, `NumPy`, `Psycopg2`, and `Sklearn`, among others.
 
@@ -9,7 +10,7 @@ Important Python libraries used: `Requests`, `BeautifulSoup`, `Pandas`, `NumPy`,
 ## How to use this repository:
 If you're interested in seeing just the script and Python code that I wrote, [click here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.4craigslist_scraper_tutoring.py)
 
-**Recommended: If you'd like to see what the Python script actually does, without running the script yourself, you can view the code *and* the outputs of that code by clicking [here](https://github.com/papir805/craigslist_web_scraper/blob/master/v1.4craigslist_scraper_tutoring.ipynb) or [here](https://nbviewer.org/github/papir805/craigslist_web_scraper/blob/master/v1.4craigslist_scraper_tutoring.ipynb).**
+**Recommended: If you'd like to see what the Python script actually does, without running the script yourself, you can view the code *and* the outputs of that code by clicking [here](https://nbviewer.org/github/papir805/craigslist_web_scraper/blob/master/v1.4craigslist_scraper_tutoring.ipynb).**
 
 
 ## Method:
