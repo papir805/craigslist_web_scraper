@@ -1,7 +1,6 @@
 # CL_tutoring_scraper - ETL Web Scraper
 ## Goal: To curate a dataset of math tutoring prices that can be used to understand the local and national competition.
 As someone who runs a tutoring business, the majority of my business comes from Craigslist (CL), and I wanted to understand my competition better.  I was curious to know how my prices compare to those of other tutors in neighboring areas as well as in other parts of the country. Using Python, I built this web scraper to scrape the prices of tutors from posts in the services section of CL, then store the information in a PostgreSQL database to be used later in analysis.
->>>>>>> updated readme
 
 Important Python libraries used: `Requests`, `BeautifulSoup`, `Pandas`, `NumPy`, `Psycopg2`, and `Sklearn`, among others.
 
